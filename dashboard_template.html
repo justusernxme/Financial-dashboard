@@ -1,0 +1,1069 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Financial Intelligence Platform | AAPL & MSFT</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #F8FAFC;
+            color: #0F172A;
+        }
+        .header-gradient {
+            background: linear-gradient(135deg, #1E3A8A 0%, #172554 100%);
+        }
+        .kpi-card {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 10px;
+            padding: 1.1rem 1.25rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+        }
+        .tab-btn {
+            padding: 0.65rem 1.25rem;
+            font-weight: 600;
+            font-size: 0.925rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: #475569;
+        }
+        .tab-btn:hover {
+            background: #F1F5F9;
+            color: #0F172A;
+        }
+        .tab-btn.active {
+            background: #1E3A8A;
+            color: #FFFFFF;
+            box-shadow: 0 2px 4px rgba(30, 58, 138, 0.25);
+        }
+        .subtab-btn {
+            padding: 0.45rem 1rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            background: #F1F5F9;
+            color: #475569;
+        }
+        .subtab-btn.active {
+            background: #2563EB;
+            color: #FFFFFF;
+        }
+        .ratio-pill {
+            padding: 0.35rem 0.85rem;
+            font-size: 0.825rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid #CBD5E1;
+            background: #FFFFFF;
+            color: #475569;
+        }
+        .ratio-pill.active {
+            background: #1E3A8A;
+            color: #FFFFFF;
+            border-color: #1E3A8A;
+        }
+        .delta-pos {
+            background-color: #DCFCE7;
+            color: #15803D;
+        }
+        .delta-neg {
+            background-color: #FEE2E2;
+            color: #B91C1C;
+        }
+        .delta-neu {
+            background-color: #F1F5F9;
+            color: #475569;
+        }
+        .table-container {
+            border-radius: 8px;
+            border: 1px solid #E2E8F0;
+            overflow-x: auto;
+            background: #FFFFFF;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.875rem;
+        }
+        th {
+            background-color: #1F4E79;
+            color: #FFFFFF;
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            text-align: right;
+            white-space: nowrap;
+        }
+        th:first-child {
+            text-align: left;
+        }
+        td {
+            padding: 0.65rem 1rem;
+            border-bottom: 1px solid #F1F5F9;
+            text-align: right;
+            white-space: nowrap;
+        }
+        td:first-child {
+            text-align: left;
+            font-weight: 500;
+        }
+        tr:nth-child(even) td {
+            background-color: #F8FAFC;
+        }
+        tr:hover td {
+            background-color: #F1F5F9;
+        }
+        .header-row td {
+            background-color: #D9E1F2 !important;
+            font-weight: 700;
+            color: #1F4E79;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+        .total-row td {
+            font-weight: 700;
+            border-top: 1.5px solid #1F4E79;
+            border-bottom: 2px solid #1F4E79;
+            background-color: #F1F5F9;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Top Control Bar: Ticker Segmented Switcher & Real-time Search -->
+        <div class="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center gap-2 w-full md:w-auto">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1">Select Company:</span>
+                <div class="inline-flex rounded-lg bg-slate-100 p-1 border border-slate-200" id="ticker-toggle-group">
+                    <button onclick="switchTicker('AAPL')" id="btn-aapl" class="px-4 py-1.5 text-sm font-semibold rounded-md transition-all">🍎 AAPL</button>
+                    <button onclick="switchTicker('MSFT')" id="btn-msft" class="px-4 py-1.5 text-sm font-semibold rounded-md transition-all">🪟 MSFT</button>
+                </div>
+            </div>
+            <div class="w-full md:w-96 relative">
+                <input type="text" id="global-search" oninput="handleSearch(this.value)"
+                    placeholder="🔍 Search keywords (e.g. 'Revenue', 'Goodwill', 'Debt')..."
+                    class="w-full pl-3.5 pr-8 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all">
+                <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-600 font-bold">✕</button>
+            </div>
+        </div>
+
+        <!-- Global Search Results Container (Hidden unless searching) -->
+        <div id="search-results-section" class="hidden space-y-3">
+            <div class="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-r-lg border border-blue-200">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <span class="font-bold text-blue-900 text-sm" id="search-results-title">🔍 Search Results</span>
+                        <span class="text-xs text-slate-600 ml-2" id="search-results-count"></span>
+                    </div>
+                    <button onclick="clearSearch()" class="text-xs font-semibold text-blue-700 hover:underline">Clear Filter</button>
+                </div>
+            </div>
+            <div class="table-container shadow-sm">
+                <table id="search-results-table">
+                    <thead>
+                        <tr>
+                            <th class="w-36">Source Sheet</th>
+                            <th>Metric / Line Item</th>
+                            <th>2016</th><th>2017</th><th>2018</th><th>2019</th><th>2020</th>
+                            <th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th>
+                        </tr>
+                    </thead>
+                    <tbody id="search-results-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Corporate Header Banner -->
+        <div class="header-gradient rounded-2xl p-6 md:p-8 text-white shadow-lg">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold flex items-center gap-3" id="company-name-banner"></h1>
+                    <p class="text-blue-100 text-sm mt-1" id="company-subtitle-banner"></p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2.5 text-right">
+                    <div class="text-xs uppercase tracking-wider text-blue-200 font-semibold">Reporting Scope</div>
+                    <div class="text-sm md:text-base font-bold text-white">10-Year Audited SEC 10-K</div>
+                    <div class="text-xs text-blue-200">FY2016 – FY2025</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top 5 Executive KPI Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3.5" id="kpi-cards-grid">
+            <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Main Navigation Tabs -->
+        <div class="border-b border-slate-200">
+            <div class="flex flex-wrap gap-2 pb-2">
+                <button onclick="switchTab('executive')" id="tab-executive" class="tab-btn active">📊 Executive Dashboard</button>
+                <button onclick="switchTab('ratios')" id="tab-ratios" class="tab-btn">📐 Financial Ratios</button>
+                <button onclick="switchTab('statements')" id="tab-statements" class="tab-btn">📑 Financial Statements</button>
+                <button onclick="switchTab('sentiment')" id="tab-sentiment" class="tab-btn">🧠 MD&A Sentiment Analysis</button>
+                <button onclick="switchTab('stock')" id="tab-stock" class="tab-btn">📈 Stock Price History</button>
+            </div>
+        </div>
+
+        <!-- Tab 1: Executive Dashboard Content -->
+        <div id="content-executive" class="space-y-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800" id="chart1-title"></h2>
+                        <p class="text-xs text-slate-500">Dual-axis annual comparison of closing stock price ($) vs. MD&A sentiment P/N ratio.</p>
+                    </div>
+                    <div class="mt-2 md:mt-0 flex items-center gap-4 text-xs font-semibold">
+                        <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#1F4E79]"></span> Stock Price ($) [Left]</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#C00000]"></span> MD&A Sentiment (P/N) [Right]</span>
+                    </div>
+                </div>
+                <div class="h-80 w-full">
+                    <canvas id="dualAxisChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Pearson Correlation Metric Card -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5" id="correlation-card"></div>
+
+            <!-- 10-Year Executive Highlights Table -->
+            <div class="space-y-3">
+                <h3 class="text-base font-bold text-slate-800">10-Year Executive Summary Metrics (FY2016 – FY2025)</h3>
+                <div class="table-container shadow-sm">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fiscal Year</th>
+                                <th>Stock Price ($)</th>
+                                <th>YoY Return (%)</th>
+                                <th>MD&A Sentiment P/N</th>
+                                <th>Sentiment Tone</th>
+                                <th>Revenue ($B)</th>
+                                <th>Net Income ($B)</th>
+                                <th>Operating Margin (%)</th>
+                                <th>Return on Equity (%)</th>
+                                <th>Current Ratio (x)</th>
+                                <th>Debt-to-Equity (x)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="executive-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Financial Ratios Content -->
+        <div id="content-ratios" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex flex-wrap gap-2" id="ratio-category-pills">
+                    <button onclick="filterRatioCategory('All Categories')" class="ratio-pill active" id="pill-all">All Categories</button>
+                    <button onclick="filterRatioCategory('Liquidity')" class="ratio-pill" id="pill-liquidity">Liquidity</button>
+                    <button onclick="filterRatioCategory('Solvency')" class="ratio-pill" id="pill-solvency">Solvency</button>
+                    <button onclick="filterRatioCategory('Efficiency')" class="ratio-pill" id="pill-efficiency">Efficiency</button>
+                    <button onclick="filterRatioCategory('Profitability')" class="ratio-pill" id="pill-profitability">Profitability</button>
+                </div>
+                <input type="text" id="ratio-search-input" oninput="renderRatiosTable()" placeholder="Filter ratios..."
+                    class="w-full md:w-64 px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+            </div>
+            <div class="table-container shadow-sm">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ratio / Metric</th>
+                            <th>Category</th>
+                            <th>Formula / Definition</th>
+                            <th>2016</th><th>2017</th><th>2018</th><th>2019</th><th>2020</th>
+                            <th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ratios-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 3: Financial Statements Content -->
+        <div id="content-statements" class="hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <div class="inline-flex rounded-lg bg-slate-100 p-1 border border-slate-200">
+                    <button onclick="switchStatement('Income Statement')" id="subtab-income" class="subtab-btn active">Income Statement</button>
+                    <button onclick="switchStatement('Balance Sheet')" id="subtab-balance" class="subtab-btn">Balance Sheet</button>
+                    <button onclick="switchStatement('Cash Flows')" id="subtab-cash" class="subtab-btn">Cash Flows</button>
+                </div>
+                <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                    Units: <b class="text-slate-800">$ Millions USD</b> (except per-share)
+                </span>
+            </div>
+            <h3 class="text-base font-bold text-slate-800" id="statement-title"></h3>
+            <div class="table-container shadow-sm">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="w-80">Line Item / Financial Concept</th>
+                            <th>2016</th><th>2017</th><th>2018</th><th>2019</th><th>2020</th>
+                            <th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statements-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 4: MD&A Sentiment Analysis Content -->
+        <div id="content-sentiment" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="sentiment-stats-grid"></div>
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-base font-bold text-slate-800">Loughran-McDonald MD&A Sentiment Ratio (P/N) Trend</h3>
+                    <span class="text-xs text-slate-500">Baseline = 1.0 (Positive > 1.0)</span>
+                </div>
+                <div class="h-72 w-full">
+                    <canvas id="sentimentBarChart"></canvas>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <h3 class="text-base font-bold text-slate-800">10-Year Loughran-McDonald Sentiment Metrics Table</h3>
+                <div class="table-container shadow-sm">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fiscal Year</th>
+                                <th>Cleaned Words</th>
+                                <th>Positive Words</th>
+                                <th>Negative Words</th>
+                                <th>Net Score</th>
+                                <th>P/N Ratio</th>
+                                <th>Net Sentiment %</th>
+                                <th>Tone Classification</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sentiment-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Stock Price History Content -->
+        <div id="content-stock" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-base font-bold text-slate-800" id="stock-chart-title">10-Year Closing Stock Price Trend</h3>
+                    <span class="text-xs text-slate-500">Historical Fiscal Year-End Closing Prices</span>
+                </div>
+                <div class="h-72 w-full">
+                    <canvas id="stockAreaChart"></canvas>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <h3 class="text-base font-bold text-slate-800">Historical Stock Price & Trading Volume Table</h3>
+                <div class="table-container shadow-sm">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fiscal Year</th>
+                                <th>Balance Sheet Date</th>
+                                <th>Actual Trading Date</th>
+                                <th>Closing Price ($)</th>
+                                <th>Adjusted Close ($)</th>
+                                <th>Trading Volume</th>
+                                <th>YoY Price Return (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="border-t border-slate-200 pt-6 pb-12 text-center text-xs text-slate-500 space-y-1">
+            <p><b>Enterprise Financial Intelligence Platform</b> &bull; Audited SEC Form 10-K Data (FY2016 – FY2025)</p>
+            <p>Built with modern web standards for direct hosting on <b>GitHub Pages</b> &bull; Zero Server Requirements</p>
+        </div>
+
+    </div>
+
+    <!-- Embedded High-Fidelity Dataset -->
+    <script>
+        window.FINANCIAL_DATA = __DATA_JSON__;
+    </script>
+
+    <!-- Client-Side Application Logic -->
+    <script>
+        let currentTicker = 'AAPL';
+        let currentTab = 'executive';
+        let currentStatement = 'Income Statement';
+        let currentRatioCategory = 'All Categories';
+        let searchQuery = '';
+
+        let dualAxisChartInstance = null;
+        let sentimentChartInstance = null;
+        let stockChartInstance = null;
+
+        const HEADER_LABELS = [
+            'CURRENT ASSETS', 'NON-CURRENT ASSETS', 'CURRENT LIABILITIES',
+            'NON-CURRENT LIABILITIES', "STOCKHOLDERS' EQUITY", 'REVENUES',
+            'OPERATING EXPENSES', 'OTHER INCOME / (EXPENSE)', 'PER SHARE DATA',
+            'OPERATING ACTIVITIES', 'INVESTING ACTIVITIES', 'FINANCING ACTIVITIES',
+            'NET CHANGE IN CASH'
+        ];
+
+        const TOTAL_LABELS = [
+            'total net sales / revenue', 'gross profit', 'operating income (ebit)',
+            'net income', 'total current assets', 'total assets', 'total current liabilities',
+            'total liabilities', "total stockholders' equity",
+            'total liabilities and stockholders\' equity',
+            'net cash provided by operating activities',
+            'net cash used in investing activities',
+            'net cash used in financing activities',
+            'net increase / (decrease) in cash and cash equivalents',
+            'cash and cash equivalents at end of period'
+        ];
+
+        function switchTicker(ticker) {
+            currentTicker = ticker;
+            document.getElementById('btn-aapl').className = ticker === 'AAPL'
+                ? 'px-4 py-1.5 text-sm font-bold rounded-md bg-white text-blue-900 shadow-sm'
+                : 'px-4 py-1.5 text-sm font-semibold rounded-md text-slate-600 hover:text-slate-900';
+            document.getElementById('btn-msft').className = ticker === 'MSFT'
+                ? 'px-4 py-1.5 text-sm font-bold rounded-md bg-white text-blue-900 shadow-sm'
+                : 'px-4 py-1.5 text-sm font-semibold rounded-md text-slate-600 hover:text-slate-900';
+
+            renderApp();
+            if (searchQuery.trim()) {
+                handleSearch(searchQuery);
+            }
+        }
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            const tabs = ['executive', 'ratios', 'statements', 'sentiment', 'stock'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const content = document.getElementById(`content-${t}`);
+                if (t === tabId) {
+                    btn.classList.add('active');
+                    content.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('active');
+                    content.classList.add('hidden');
+                }
+            });
+
+            // Re-render chart on tab switch
+            if (tabId === 'executive') renderDualAxisChart();
+            if (tabId === 'sentiment') renderSentimentChart();
+            if (tabId === 'stock') renderStockChart();
+        }
+
+        function switchStatement(stmtName) {
+            currentStatement = stmtName;
+            document.getElementById('subtab-income').className = stmtName === 'Income Statement' ? 'subtab-btn active' : 'subtab-btn';
+            document.getElementById('subtab-balance').className = stmtName === 'Balance Sheet' ? 'subtab-btn active' : 'subtab-btn';
+            document.getElementById('subtab-cash').className = stmtName === 'Cash Flows' ? 'subtab-btn active' : 'subtab-btn';
+            renderStatementsTab();
+        }
+
+        function filterRatioCategory(catName) {
+            currentRatioCategory = catName;
+            const pills = {
+                'All Categories': 'pill-all',
+                'Liquidity': 'pill-liquidity',
+                'Solvency': 'pill-solvency',
+                'Efficiency': 'pill-efficiency',
+                'Profitability': 'pill-profitability'
+            };
+            Object.entries(pills).forEach(([k, id]) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (k === catName) el.classList.add('active');
+                    else el.classList.remove('active');
+                }
+            });
+            renderRatiosTable();
+        }
+
+        function clearSearch() {
+            document.getElementById('global-search').value = '';
+            document.getElementById('clear-search-btn').classList.add('hidden');
+            document.getElementById('search-results-section').classList.add('hidden');
+            searchQuery = '';
+        }
+
+        function handleSearch(q) {
+            searchQuery = q.trim();
+            const btn = document.getElementById('clear-search-btn');
+            const sec = document.getElementById('search-results-section');
+            if (!searchQuery) {
+                btn.classList.add('hidden');
+                sec.classList.add('hidden');
+                return;
+            }
+            btn.classList.remove('hidden');
+            sec.classList.remove('hidden');
+
+            const bundle = window.FINANCIAL_DATA[currentTicker].sheets;
+            const matches = [];
+            const queryLower = searchQuery.toLowerCase();
+
+            Object.entries(bundle).forEach(([sheetName, rows]) => {
+                rows.forEach(r => {
+                    const label = (r['Line Item'] || r['Ratio / Metric'] || r['Metric / Line Item'] || '').toString();
+                    if (label.toLowerCase().includes(queryLower)) {
+                        matches.push({
+                            sheet: sheetName,
+                            label: label.trim(),
+                            data: r
+                        });
+                    }
+                });
+            });
+
+            document.getElementById('search-results-title').innerHTML = `🔍 Filtered Results for: <span class="bg-yellow-200 text-yellow-900 px-2 py-0.5 rounded font-mono">"${searchQuery}"</span>`;
+            document.getElementById('search-results-count').textContent = `Found ${matches.length} matching line item(s) across all sheets`;
+
+            const tbody = document.getElementById('search-results-tbody');
+            tbody.innerHTML = '';
+            if (matches.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12" class="text-center py-6 text-slate-500">No matching line items found for "${searchQuery}". Try searching for 'Revenue', 'Goodwill', 'Debt', 'Margin', or 'Cash'.</td></tr>`;
+                return;
+            }
+
+            matches.forEach(m => {
+                let tr = document.createElement('tr');
+                let badgeCls = 'bg-slate-100 text-slate-700 border-slate-300';
+                if (m.sheet.includes('Income')) badgeCls = 'bg-blue-50 text-blue-700 border-blue-200';
+                if (m.sheet.includes('Balance')) badgeCls = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                if (m.sheet.includes('Cash')) badgeCls = 'bg-purple-50 text-purple-700 border-purple-200';
+                if (m.sheet.includes('Ratios')) badgeCls = 'bg-amber-50 text-amber-700 border-amber-200';
+
+                let html = `<td><span class="text-xs px-2 py-1 rounded border font-semibold ${badgeCls}">${m.sheet}</span></td>`;
+                html += `<td class="font-bold text-slate-800">${m.label}</td>`;
+                for (let yr = 2016; yr <= 2025; yr++) {
+                    let val = m.data[yr.toString()];
+                    html += `<td>${formatNumberCell(val, m.label, m.data['Format'])}</td>`;
+                }
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function formatNumberCell(val, label, formatType) {
+            if (val === null || val === undefined || isNaN(val)) return '—';
+            let num = parseFloat(val);
+            if (isNaN(num)) return '—';
+
+            if (formatType === 'multiplier') return num.toFixed(2) + 'x';
+            if (formatType === 'percentage') return (num * 1.0).toFixed(1) + '%';
+            if (formatType === 'days') return num.toFixed(1) + ' d';
+
+            if (label && label.toLowerCase().includes('per share')) {
+                return '$' + num.toFixed(2);
+            }
+
+            // Raw values >= 1M in statements scaled to millions
+            if (Math.abs(num) >= 1000000) {
+                num = num / 1000000;
+            }
+            return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function renderApp() {
+            const companyData = window.FINANCIAL_DATA[currentTicker];
+            const meta = companyData.metadata;
+
+            // Render Banner
+            document.getElementById('company-name-banner').innerHTML = `${meta.icon} ${meta.name} (${currentTicker})`;
+            document.getElementById('company-subtitle-banner').innerHTML =
+                `${meta.sector} &bull; ${meta.industry} &bull; <b class="text-white">${meta.exchange}</b> &bull; Fiscal Year End: <b>${meta.fy_end}</b>`;
+
+            // Render KPI Cards
+            renderKpis(companyData);
+
+            // Render Active Tab Content
+            if (currentTab === 'executive') {
+                renderExecutiveTab();
+            } else if (currentTab === 'ratios') {
+                renderRatiosTable();
+            } else if (currentTab === 'statements') {
+                renderStatementsTab();
+            } else if (currentTab === 'sentiment') {
+                renderSentimentTab();
+            } else if (currentTab === 'stock') {
+                renderStockTab();
+            }
+        }
+
+        function renderKpis(companyData) {
+            const summary = companyData.sheets['Executive Summary'];
+            const first = summary[0];
+            const latest = summary[summary.length - 1];
+
+            const pFirst = parseFloat(first['Stock Price ($)']);
+            const pLatest = parseFloat(latest['Stock Price ($)']);
+            const totReturn = ((pLatest - pFirst) / pFirst) * 100;
+            const yoyPriceRet = parseFloat(latest['YoY Price Return (%)'] || 0);
+
+            const rev = parseFloat(latest['Revenue ($B)']);
+            const ni = parseFloat(latest['Net Income ($B)']);
+            const pn = parseFloat(latest['MD&A Sentiment P/N']);
+            const tone = latest['Sentiment Tone'] || (pn >= 1.0 ? 'Positive' : 'Cautious / Negative');
+
+            const deltaYoyCls = yoyPriceRet >= 0 ? 'delta-pos' : 'delta-neg';
+            const deltaTotCls = totReturn >= 0 ? 'delta-pos' : 'delta-neg';
+            const toneCls = tone.toLowerCase().includes('positive') ? 'delta-pos' : 'delta-neg';
+
+            const container = document.getElementById('kpi-cards-grid');
+            container.innerHTML = `
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Closing Stock Price</div>
+                    <div class="text-2xl font-extrabold text-slate-900 mt-1">$${pLatest.toFixed(2)}</div>
+                    <div class="mt-2 inline-flex items-center text-xs px-2 py-0.5 rounded font-bold ${deltaYoyCls}">
+                        ${yoyPriceRet >= 0 ? '+' : ''}${yoyPriceRet.toFixed(2)}% YoY
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">10-Yr Total Return</div>
+                    <div class="text-2xl font-extrabold text-slate-900 mt-1">+${totReturn.toFixed(1)}%</div>
+                    <div class="mt-2 inline-flex items-center text-xs px-2 py-0.5 rounded font-bold ${deltaTotCls}">
+                        FY2016 → FY2025
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">FY2025 Revenue</div>
+                    <div class="text-2xl font-extrabold text-blue-900 mt-1">$${rev.toFixed(2)}B</div>
+                    <div class="mt-2 text-xs text-slate-500 font-medium">Audited SEC 10-K</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">FY2025 Net Income</div>
+                    <div class="text-2xl font-extrabold text-emerald-700 mt-1">$${ni.toFixed(2)}B</div>
+                    <div class="mt-2 text-xs text-slate-500 font-medium">Net Profit Margin: ${((ni / rev) * 100).toFixed(1)}%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">MD&A Sentiment P/N</div>
+                    <div class="text-2xl font-extrabold text-slate-900 mt-1">${pn.toFixed(4)}</div>
+                    <div class="mt-2 inline-flex items-center text-xs px-2 py-0.5 rounded font-bold ${toneCls}">
+                        ${tone}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderExecutiveTab() {
+            document.getElementById('chart1-title').textContent = `${currentTicker} 10-Year Stock Price vs. MD&A Sentiment P/N Ratio`;
+            renderDualAxisChart();
+
+            // Correlation card
+            const corr = window.FINANCIAL_DATA[currentTicker].correlation;
+            const r = corr.r;
+            const r2 = corr.r2;
+            let interpretation = r > 0.5 ? 'Strong Positive Co-Movement' : (r > 0 ? 'Moderate Positive Association' : 'Inverse Relationship');
+            let colorCls = r > 0.3 ? 'text-blue-900' : 'text-slate-700';
+
+            document.getElementById('correlation-card').innerHTML = `
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-blue-700">Loughran-McDonald NLP Statistical Correlation</div>
+                        <div class="text-base font-bold ${colorCls} mt-0.5">Pearson Correlation Coefficient: r = ${r.toFixed(4)} (R² = ${r2.toFixed(4)}) &bull; ${interpretation}</div>
+                        <p class="text-xs text-slate-600 mt-1">Measures the empirical association between Item 7 (MD&A) qualitative sentiment tone and annual balance sheet date stock prices over the 10-year fiscal period.</p>
+                    </div>
+                    <div class="bg-white border border-blue-200 rounded-lg px-4 py-2 text-center shadow-sm">
+                        <span class="text-xs text-slate-500 uppercase font-semibold">Correlation Strength</span>
+                        <div class="text-lg font-black text-blue-900">${(r * 100).toFixed(1)}%</div>
+                    </div>
+                </div>
+            `;
+
+            // Summary table
+            const summary = window.FINANCIAL_DATA[currentTicker].sheets['Executive Summary'];
+            const tbody = document.getElementById('executive-tbody');
+            tbody.innerHTML = '';
+            summary.forEach(row => {
+                const tr = document.createElement('tr');
+                const p = parseFloat(row['Stock Price ($)']);
+                const yoy = row['YoY Price Return (%)'] !== null ? parseFloat(row['YoY Price Return (%)']) : null;
+                const pn = parseFloat(row['MD&A Sentiment P/N']);
+                const tone = row['Sentiment Tone'] || 'Neutral';
+                const toneCls = tone.toLowerCase().includes('positive') ? 'text-emerald-700 font-semibold' : 'text-rose-700 font-semibold';
+
+                tr.innerHTML = `
+                    <td class="font-bold text-slate-900">${row['Fiscal Year']}</td>
+                    <td class="font-bold text-slate-800">$${p.toFixed(2)}</td>
+                    <td class="${yoy !== null && yoy >= 0 ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}">${yoy !== null ? (yoy >= 0 ? '+' : '') + yoy.toFixed(2) + '%' : '—'}</td>
+                    <td>${pn.toFixed(4)}</td>
+                    <td class="${toneCls}">${tone}</td>
+                    <td>$${parseFloat(row['Revenue ($B)']).toFixed(2)}B</td>
+                    <td>$${parseFloat(row['Net Income ($B)']).toFixed(2)}B</td>
+                    <td>${parseFloat(row['Operating Margin (%)']).toFixed(2)}%</td>
+                    <td>${parseFloat(row['Return on Equity (%)']).toFixed(2)}%</td>
+                    <td>${parseFloat(row['Current Ratio (x)']).toFixed(2)}x</td>
+                    <td>${parseFloat(row['Debt-to-Equity (x)']).toFixed(2)}x</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderDualAxisChart() {
+            const ctx = document.getElementById('dualAxisChart').getContext('2d');
+            const summary = window.FINANCIAL_DATA[currentTicker].sheets['Executive Summary'];
+            const labels = summary.map(r => r['Fiscal Year'].toString());
+            const prices = summary.map(r => parseFloat(r['Stock Price ($)']));
+            const pns = summary.map(r => parseFloat(r['MD&A Sentiment P/N']));
+
+            if (dualAxisChartInstance) {
+                dualAxisChartInstance.destroy();
+            }
+
+            dualAxisChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Stock Price ($)',
+                            data: prices,
+                            borderColor: '#1F4E79',
+                            backgroundColor: 'rgba(31, 78, 121, 0.1)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#1F4E79',
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            yAxisID: 'yPrice',
+                            tension: 0.25,
+                            fill: true
+                        },
+                        {
+                            label: 'MD&A Sentiment P/N',
+                            data: pns,
+                            borderColor: '#C00000',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2.5,
+                            borderDash: [5, 4],
+                            pointBackgroundColor: '#C00000',
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            yAxisID: 'yPn',
+                            tension: 0.25
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0F172A',
+                            titleFont: { size: 13, weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            padding: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.datasetIndex === 0) {
+                                        return `Stock Price: $${context.parsed.y.toFixed(2)}`;
+                                    } else {
+                                        return `MD&A Sentiment P/N: ${context.parsed.y.toFixed(4)}`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { weight: 'bold' } }
+                        },
+                        yPrice: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Stock Price (USD)', font: { weight: 'bold', size: 12 }, color: '#1F4E79' },
+                            ticks: { callback: v => '$' + v }
+                        },
+                        yPn: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'MD&A Sentiment P/N Ratio', font: { weight: 'bold', size: 12 }, color: '#C00000' },
+                            grid: { drawOnChartArea: false },
+                            ticks: { callback: v => v.toFixed(2) }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderRatiosTable() {
+            const ratios = window.FINANCIAL_DATA[currentTicker].sheets['Financial Ratios'];
+            const filterInput = (document.getElementById('ratio-search-input').value || '').toLowerCase().trim();
+            const tbody = document.getElementById('ratios-tbody');
+            tbody.innerHTML = '';
+
+            ratios.forEach(r => {
+                const metric = r['Ratio / Metric'] || '';
+                const category = r['Category'] || '';
+                const formula = r['Formula / Definition'] || '—';
+                const fmt = r['Format'] || 'multiplier';
+
+                // Category filter
+                if (currentRatioCategory !== 'All Categories' && category.toLowerCase() !== currentRatioCategory.toLowerCase()) {
+                    return;
+                }
+                // Text search filter
+                if (filterInput && !metric.toLowerCase().includes(filterInput) && !formula.toLowerCase().includes(filterInput)) {
+                    return;
+                }
+
+                let catBadge = 'bg-slate-100 text-slate-700';
+                if (category === 'Liquidity') catBadge = 'bg-blue-50 text-blue-700 border border-blue-200';
+                if (category === 'Solvency') catBadge = 'bg-amber-50 text-amber-700 border border-amber-200';
+                if (category === 'Efficiency') catBadge = 'bg-purple-50 text-purple-700 border border-purple-200';
+                if (category === 'Profitability') catBadge = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+
+                const tr = document.createElement('tr');
+                let html = `<td class="font-bold text-slate-800">${metric}</td>`;
+                html += `<td><span class="text-xs px-2.5 py-0.5 rounded-full font-bold ${catBadge}">${category}</span></td>`;
+                html += `<td class="text-xs text-slate-500 font-mono text-left">${formula}</td>`;
+
+                for (let yr = 2016; yr <= 2025; yr++) {
+                    const val = r[yr.toString()];
+                    html += `<td>${formatNumberCell(val, metric, fmt)}</td>`;
+                }
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderStatementsTab() {
+            document.getElementById('statement-title').textContent = `${currentTicker} 10-Year ${currentStatement} ($ Millions)`;
+            const df = window.FINANCIAL_DATA[currentTicker].sheets[currentStatement] || [];
+            const tbody = document.getElementById('statements-tbody');
+            tbody.innerHTML = '';
+
+            df.forEach(row => {
+                const rawLabel = (row['Line Item'] || row['Line Item / Financial Concept'] || '').toString();
+                const cleanLabel = rawLabel.trim();
+                const tr = document.createElement('tr');
+
+                // Determine if this is a section category header
+                const isHeader = HEADER_LABELS.includes(cleanLabel.toUpperCase());
+                const isTotal = TOTAL_LABELS.includes(cleanLabel.toLowerCase());
+
+                if (isHeader) {
+                    tr.className = 'header-row';
+                    let html = `<td colspan="11" class="py-2 px-4">${cleanLabel}</td>`;
+                    tr.innerHTML = html;
+                } else {
+                    if (isTotal) tr.className = 'total-row';
+                    let indent = rawLabel.startsWith('    ') ? 'pl-8' : 'pl-4';
+                    let html = `<td class="${indent}">${cleanLabel}</td>`;
+                    for (let yr = 2016; yr <= 2025; yr++) {
+                        const val = row[yr.toString()];
+                        html += `<td>${formatNumberCell(val, cleanLabel)}</td>`;
+                    }
+                    tr.innerHTML = html;
+                }
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderSentimentTab() {
+            const sentRows = window.FINANCIAL_DATA[currentTicker].sheets['Sentiment Analysis'] || [];
+            const tbody = document.getElementById('sentiment-tbody');
+            tbody.innerHTML = '';
+
+            let pns = [];
+            sentRows.forEach(r => {
+                const pn = parseFloat(r['P/N Ratio']);
+                if (!isNaN(pn)) pns.push(pn);
+                const tr = document.createElement('tr');
+                const tone = r['Tone Classification'] || (pn >= 1.0 ? 'Positive' : 'Cautious / Negative');
+                const toneCls = tone.toLowerCase().includes('positive') ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold';
+
+                tr.innerHTML = `
+                    <td class="font-bold text-slate-800">${r['Fiscal Year']}</td>
+                    <td>${parseInt(r['Total Words']).toLocaleString()}</td>
+                    <td class="text-emerald-700 font-semibold">${parseInt(r['Positive Count']).toLocaleString()}</td>
+                    <td class="text-rose-700 font-semibold">${parseInt(r['Negative Count']).toLocaleString()}</td>
+                    <td class="${parseInt(r['Net Score']) >= 0 ? 'text-emerald-700' : 'text-rose-700'} font-bold">${parseInt(r['Net Score']) > 0 ? '+' : ''}${parseInt(r['Net Score']).toLocaleString()}</td>
+                    <td class="font-bold text-blue-900">${pn.toFixed(4)}</td>
+                    <td>${(parseFloat(r['Net Sentiment %']) * 100).toFixed(2)}%</td>
+                    <td class="${toneCls}">${tone}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Summary stats
+            const avgPn = pns.length ? (pns.reduce((a, b) => a + b, 0) / pns.length).toFixed(4) : '1.0000';
+            const maxPn = pns.length ? Math.max(...pns).toFixed(4) : '1.0000';
+            const minPn = pns.length ? Math.min(...pns).toFixed(4) : '1.0000';
+
+            document.getElementById('sentiment-stats-grid').innerHTML = `
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">10-Year Average P/N Ratio</div>
+                    <div class="text-2xl font-black text-blue-900 mt-1">${avgPn}</div>
+                    <div class="text-xs text-slate-500 mt-1 font-medium">Loughran-McDonald Multi-Year Baseline</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">Most Optimistic Filing</div>
+                    <div class="text-2xl font-black text-emerald-700 mt-1">${maxPn}</div>
+                    <div class="text-xs text-slate-500 mt-1 font-medium">Peak positive qualitative tone</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">Most Cautious Filing</div>
+                    <div class="text-2xl font-black text-rose-700 mt-1">${minPn}</div>
+                    <div class="text-xs text-slate-500 mt-1 font-medium">Maximum risk / uncertainty emphasis</div>
+                </div>
+            `;
+
+            renderSentimentChart();
+        }
+
+        function renderSentimentChart() {
+            const ctx = document.getElementById('sentimentBarChart').getContext('2d');
+            const sentRows = window.FINANCIAL_DATA[currentTicker].sheets['Sentiment Analysis'] || [];
+            const labels = sentRows.map(r => r['Fiscal Year'].toString());
+            const pns = sentRows.map(r => parseFloat(r['P/N Ratio']));
+            const bgColors = pns.map(p => p >= 1.0 ? '#10B981' : '#F43F5E');
+
+            if (sentimentChartInstance) {
+                sentimentChartInstance.destroy();
+            }
+
+            sentimentChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'MD&A Sentiment P/N Ratio',
+                        data: pns,
+                        backgroundColor: bgColors,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `P/N Ratio: ${ctx.parsed.y.toFixed(4)} (${ctx.parsed.y >= 1.0 ? 'Positive Tone' : 'Cautious Tone'})`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { weight: 'bold' } } },
+                        y: {
+                            title: { display: true, text: 'P/N Ratio' },
+                            suggestedMin: 0.4
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderStockTab() {
+            document.getElementById('stock-chart-title').textContent = `${currentTicker} 10-Year Closing Stock Price & YoY Returns`;
+            const stockRows = window.FINANCIAL_DATA[currentTicker].sheets['Stock Price'] || [];
+            const tbody = document.getElementById('stock-tbody');
+            tbody.innerHTML = '';
+
+            stockRows.forEach(r => {
+                const tr = document.createElement('tr');
+                const p = parseFloat(r['Closing Price ($)']);
+                const adj = parseFloat(r['Adjusted Close ($)']);
+                const vol = parseInt(r['Trading Volume']);
+                const ret = r['YoY % Return'] !== null ? parseFloat(r['YoY % Return']) : null;
+                const retFormatted = ret !== null ? ((ret > 0 ? '+' : '') + (ret * (Math.abs(ret) < 2.0 ? 100 : 1)).toFixed(2) + '%') : '—';
+                const retCls = ret !== null && ret >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold';
+
+                tr.innerHTML = `
+                    <td class="font-bold text-slate-800">${r['Fiscal Year']}</td>
+                    <td class="font-mono text-slate-600 text-xs">${r['Balance Sheet Date']}</td>
+                    <td class="font-mono text-slate-600 text-xs">${r['Actual Trading Date']}</td>
+                    <td class="font-bold text-slate-900">$${p.toFixed(2)}</td>
+                    <td class="text-slate-700">$${adj.toFixed(2)}</td>
+                    <td class="font-mono text-xs">${vol.toLocaleString()}</td>
+                    <td class="${retCls}">${retFormatted}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            renderStockChart();
+        }
+
+        function renderStockChart() {
+            const ctx = document.getElementById('stockAreaChart').getContext('2d');
+            const stockRows = window.FINANCIAL_DATA[currentTicker].sheets['Stock Price'] || [];
+            const labels = stockRows.map(r => r['Fiscal Year'].toString());
+            const prices = stockRows.map(r => parseFloat(r['Closing Price ($)']));
+
+            if (stockChartInstance) {
+                stockChartInstance.destroy();
+            }
+
+            stockChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Closing Price ($)',
+                        data: prices,
+                        borderColor: '#2563EB',
+                        backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#2563EB',
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `Closing Price: $${ctx.parsed.y.toFixed(2)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { weight: 'bold' } } },
+                        y: {
+                            ticks: { callback: v => '$' + v }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize application on load
+        window.addEventListener('DOMContentLoaded', () => {
+            switchTicker('AAPL');
+        });
+    </script>
+</body>
+</html>
+"""

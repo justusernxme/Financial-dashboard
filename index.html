@@ -1,0 +1,1069 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Financial Intelligence Platform | AAPL & MSFT</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #F8FAFC;
+            color: #0F172A;
+        }
+        .header-gradient {
+            background: linear-gradient(135deg, #1E3A8A 0%, #172554 100%);
+        }
+        .kpi-card {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 10px;
+            padding: 1.1rem 1.25rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+        }
+        .tab-btn {
+            padding: 0.65rem 1.25rem;
+            font-weight: 600;
+            font-size: 0.925rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: #475569;
+        }
+        .tab-btn:hover {
+            background: #F1F5F9;
+            color: #0F172A;
+        }
+        .tab-btn.active {
+            background: #1E3A8A;
+            color: #FFFFFF;
+            box-shadow: 0 2px 4px rgba(30, 58, 138, 0.25);
+        }
+        .subtab-btn {
+            padding: 0.45rem 1rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            background: #F1F5F9;
+            color: #475569;
+        }
+        .subtab-btn.active {
+            background: #2563EB;
+            color: #FFFFFF;
+        }
+        .ratio-pill {
+            padding: 0.35rem 0.85rem;
+            font-size: 0.825rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid #CBD5E1;
+            background: #FFFFFF;
+            color: #475569;
+        }
+        .ratio-pill.active {
+            background: #1E3A8A;
+            color: #FFFFFF;
+            border-color: #1E3A8A;
+        }
+        .delta-pos {
+            background-color: #DCFCE7;
+            color: #15803D;
+        }
+        .delta-neg {
+            background-color: #FEE2E2;
+            color: #B91C1C;
+        }
+        .delta-neu {
+            background-color: #F1F5F9;
+            color: #475569;
+        }
+        .table-container {
+            border-radius: 8px;
+            border: 1px solid #E2E8F0;
+            overflow-x: auto;
+            background: #FFFFFF;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.875rem;
+        }
+        th {
+            background-color: #1F4E79;
+            color: #FFFFFF;
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            text-align: right;
+            white-space: nowrap;
+        }
+        th:first-child {
+            text-align: left;
+        }
+        td {
+            padding: 0.65rem 1rem;
+            border-bottom: 1px solid #F1F5F9;
+            text-align: right;
+            white-space: nowrap;
+        }
+        td:first-child {
+            text-align: left;
+            font-weight: 500;
+        }
+        tr:nth-child(even) td {
+            background-color: #F8FAFC;
+        }
+        tr:hover td {
+            background-color: #F1F5F9;
+        }
+        .header-row td {
+            background-color: #D9E1F2 !important;
+            font-weight: 700;
+            color: #1F4E79;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+        .total-row td {
+            font-weight: 700;
+            border-top: 1.5px solid #1F4E79;
+            border-bottom: 2px solid #1F4E79;
+            background-color: #F1F5F9;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Top Control Bar: Ticker Segmented Switcher & Real-time Search -->
+        <div class="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center gap-2 w-full md:w-auto">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1">Select Company:</span>
+                <div class="inline-flex rounded-lg bg-slate-100 p-1 border border-slate-200" id="ticker-toggle-group">
+                    <button onclick="switchTicker('AAPL')" id="btn-aapl" class="px-4 py-1.5 text-sm font-semibold rounded-md transition-all">🍎 AAPL</button>
+                    <button onclick="switchTicker('MSFT')" id="btn-msft" class="px-4 py-1.5 text-sm font-semibold rounded-md transition-all">🪟 MSFT</button>
+                </div>
+            </div>
+            <div class="w-full md:w-96 relative">
+                <input type="text" id="global-search" oninput="handleSearch(this.value)"
+                    placeholder="🔍 Search keywords (e.g. 'Revenue', 'Goodwill', 'Debt')..."
+                    class="w-full pl-3.5 pr-8 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all">
+                <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-600 font-bold">✕</button>
+            </div>
+        </div>
+
+        <!-- Global Search Results Container (Hidden unless searching) -->
+        <div id="search-results-section" class="hidden space-y-3">
+            <div class="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-r-lg border border-blue-200">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <span class="font-bold text-blue-900 text-sm" id="search-results-title">🔍 Search Results</span>
+                        <span class="text-xs text-slate-600 ml-2" id="search-results-count"></span>
+                    </div>
+                    <button onclick="clearSearch()" class="text-xs font-semibold text-blue-700 hover:underline">Clear Filter</button>
+                </div>
+            </div>
+            <div class="table-container shadow-sm">
+                <table id="search-results-table">
+                    <thead>
+                        <tr>
+                            <th class="w-36">Source Sheet</th>
+                            <th>Metric / Line Item</th>
+                            <th>2016</th><th>2017</th><th>2018</th><th>2019</th><th>2020</th>
+                            <th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th>
+                        </tr>
+                    </thead>
+                    <tbody id="search-results-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Corporate Header Banner -->
+        <div class="header-gradient rounded-2xl p-6 md:p-8 text-white shadow-lg">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold flex items-center gap-3" id="company-name-banner"></h1>
+                    <p class="text-blue-100 text-sm mt-1" id="company-subtitle-banner"></p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2.5 text-right">
+                    <div class="text-xs uppercase tracking-wider text-blue-200 font-semibold">Reporting Scope</div>
+                    <div class="text-sm md:text-base font-bold text-white">10-Year Audited SEC 10-K</div>
+                    <div class="text-xs text-blue-200">FY2016 – FY2025</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top 5 Executive KPI Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3.5" id="kpi-cards-grid">
+            <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Main Navigation Tabs -->
+        <div class="border-b border-slate-200">
+            <div class="flex flex-wrap gap-2 pb-2">
+                <button onclick="switchTab('executive')" id="tab-executive" class="tab-btn active">📊 Executive Dashboard</button>
+                <button onclick="switchTab('ratios')" id="tab-ratios" class="tab-btn">📐 Financial Ratios</button>
+                <button onclick="switchTab('statements')" id="tab-statements" class="tab-btn">📑 Financial Statements</button>
+                <button onclick="switchTab('sentiment')" id="tab-sentiment" class="tab-btn">🧠 MD&A Sentiment Analysis</button>
+                <button onclick="switchTab('stock')" id="tab-stock" class="tab-btn">📈 Stock Price History</button>
+            </div>
+        </div>
+
+        <!-- Tab 1: Executive Dashboard Content -->
+        <div id="content-executive" class="space-y-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800" id="chart1-title"></h2>
+                        <p class="text-xs text-slate-500">Dual-axis annual comparison of closing stock price ($) vs. MD&A sentiment P/N ratio.</p>
+                    </div>
+                    <div class="mt-2 md:mt-0 flex items-center gap-4 text-xs font-semibold">
+                        <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#1F4E79]"></span> Stock Price ($) [Left]</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#C00000]"></span> MD&A Sentiment (P/N) [Right]</span>
+                    </div>
+                </div>
+                <div class="h-80 w-full">
+                    <canvas id="dualAxisChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Pearson Correlation Metric Card -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5" id="correlation-card"></div>
+
+            <!-- 10-Year Executive Highlights Table -->
+            <div class="space-y-3">
+                <h3 class="text-base font-bold text-slate-800">10-Year Executive Summary Metrics (FY2016 – FY2025)</h3>
+                <div class="table-container shadow-sm">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fiscal Year</th>
+                                <th>Stock Price ($)</th>
+                                <th>YoY Return (%)</th>
+                                <th>MD&A Sentiment P/N</th>
+                                <th>Sentiment Tone</th>
+                                <th>Revenue ($B)</th>
+                                <th>Net Income ($B)</th>
+                                <th>Operating Margin (%)</th>
+                                <th>Return on Equity (%)</th>
+                                <th>Current Ratio (x)</th>
+                                <th>Debt-to-Equity (x)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="executive-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Financial Ratios Content -->
+        <div id="content-ratios" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex flex-wrap gap-2" id="ratio-category-pills">
+                    <button onclick="filterRatioCategory('All Categories')" class="ratio-pill active" id="pill-all">All Categories</button>
+                    <button onclick="filterRatioCategory('Liquidity')" class="ratio-pill" id="pill-liquidity">Liquidity</button>
+                    <button onclick="filterRatioCategory('Solvency')" class="ratio-pill" id="pill-solvency">Solvency</button>
+                    <button onclick="filterRatioCategory('Efficiency')" class="ratio-pill" id="pill-efficiency">Efficiency</button>
+                    <button onclick="filterRatioCategory('Profitability')" class="ratio-pill" id="pill-profitability">Profitability</button>
+                </div>
+                <input type="text" id="ratio-search-input" oninput="renderRatiosTable()" placeholder="Filter ratios..."
+                    class="w-full md:w-64 px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+            </div>
+            <div class="table-container shadow-sm">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ratio / Metric</th>
+                            <th>Category</th>
+                            <th>Formula / Definition</th>
+                            <th>2016</th><th>2017</th><th>2018</th><th>2019</th><th>2020</th>
+                            <th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ratios-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 3: Financial Statements Content -->
+        <div id="content-statements" class="hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <div class="inline-flex rounded-lg bg-slate-100 p-1 border border-slate-200">
+                    <button onclick="switchStatement('Income Statement')" id="subtab-income" class="subtab-btn active">Income Statement</button>
+                    <button onclick="switchStatement('Balance Sheet')" id="subtab-balance" class="subtab-btn">Balance Sheet</button>
+                    <button onclick="switchStatement('Cash Flows')" id="subtab-cash" class="subtab-btn">Cash Flows</button>
+                </div>
+                <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                    Units: <b class="text-slate-800">$ Millions USD</b> (except per-share)
+                </span>
+            </div>
+            <h3 class="text-base font-bold text-slate-800" id="statement-title"></h3>
+            <div class="table-container shadow-sm">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="w-80">Line Item / Financial Concept</th>
+                            <th>2016</th><th>2017</th><th>2018</th><th>2019</th><th>2020</th>
+                            <th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statements-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 4: MD&A Sentiment Analysis Content -->
+        <div id="content-sentiment" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="sentiment-stats-grid"></div>
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-base font-bold text-slate-800">Loughran-McDonald MD&A Sentiment Ratio (P/N) Trend</h3>
+                    <span class="text-xs text-slate-500">Baseline = 1.0 (Positive > 1.0)</span>
+                </div>
+                <div class="h-72 w-full">
+                    <canvas id="sentimentBarChart"></canvas>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <h3 class="text-base font-bold text-slate-800">10-Year Loughran-McDonald Sentiment Metrics Table</h3>
+                <div class="table-container shadow-sm">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fiscal Year</th>
+                                <th>Cleaned Words</th>
+                                <th>Positive Words</th>
+                                <th>Negative Words</th>
+                                <th>Net Score</th>
+                                <th>P/N Ratio</th>
+                                <th>Net Sentiment %</th>
+                                <th>Tone Classification</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sentiment-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Stock Price History Content -->
+        <div id="content-stock" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-base font-bold text-slate-800" id="stock-chart-title">10-Year Closing Stock Price Trend</h3>
+                    <span class="text-xs text-slate-500">Historical Fiscal Year-End Closing Prices</span>
+                </div>
+                <div class="h-72 w-full">
+                    <canvas id="stockAreaChart"></canvas>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <h3 class="text-base font-bold text-slate-800">Historical Stock Price & Trading Volume Table</h3>
+                <div class="table-container shadow-sm">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fiscal Year</th>
+                                <th>Balance Sheet Date</th>
+                                <th>Actual Trading Date</th>
+                                <th>Closing Price ($)</th>
+                                <th>Adjusted Close ($)</th>
+                                <th>Trading Volume</th>
+                                <th>YoY Price Return (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="border-t border-slate-200 pt-6 pb-12 text-center text-xs text-slate-500 space-y-1">
+            <p><b>Enterprise Financial Intelligence Platform</b> &bull; Audited SEC Form 10-K Data (FY2016 – FY2025)</p>
+            <p>Built with modern web standards for direct hosting on <b>GitHub Pages</b> &bull; Zero Server Requirements</p>
+        </div>
+
+    </div>
+
+    <!-- Embedded High-Fidelity Dataset -->
+    <script>
+        window.FINANCIAL_DATA = {"AAPL": {"metadata": {"name": "Apple Inc.", "icon": "\ud83c\udf4e", "sector": "Technology", "industry": "Consumer Electronics & Services", "exchange": "NASDAQ: AAPL", "fy_end": "Last Saturday of September", "description": "Global designer and manufacturer of smartphones (iPhone), personal computers (Mac), tablets (iPad), wearables, and digital services."}, "correlation": {"r": 0.1714, "r2": 0.0294}, "sheets": {"Executive Summary": [{"Fiscal Year": 2016, "Stock Price ($)": 28.17749977111816, "YoY Price Return (%)": 0.0, "MD&A Sentiment P/N": 0.75, "Sentiment Tone": "Cautious / Negative", "Revenue ($B)": 215.639, "Net Income ($B)": 45.687, "Operating Margin (%)": 27.84, "Return on Equity (%)": 0.3562366958026963, "Current Ratio (x)": 1.352669417512594, "Debt-to-Equity (x)": 0.6786173771335449}, {"Fiscal Year": 2017, "Stock Price ($)": 38.52999877929688, "YoY Price Return (%)": 0.3673, "MD&A Sentiment P/N": 0.6704, "Sentiment Tone": "Cautious / Negative", "Revenue ($B)": 229.234, "Net Income ($B)": 48.351, "Operating Margin (%)": 26.76, "Return on Equity (%)": 0.3607018433832909, "Current Ratio (x)": 1.276062848413911, "Debt-to-Equity (x)": 0.8988414511328117}, {"Fiscal Year": 2018, "Stock Price ($)": 56.43500137329102, "YoY Price Return (%)": 0.4648, "MD&A Sentiment P/N": 0.8944, "Sentiment Tone": "Cautious / Negative", "Revenue ($B)": 265.595, "Net Income ($B)": 59.531, "Operating Margin (%)": 26.69, "Return on Equity (%)": 0.5556011834209077, "Current Ratio (x)": 1.12384269162973, "Debt-to-Equity (x)": 1.077211681148329}, {"Fiscal Year": 2019, "Stock Price ($)": 54.70500183105469, "YoY Price Return (%)": -0.0307, "MD&A Sentiment P/N": 0.6196, "Sentiment Tone": "Cautious / Negative", "Revenue ($B)": 260.174, "Net Income ($B)": 55.256, "Operating Margin (%)": 24.57, "Return on Equity (%)": 0.6106445053487756, "Current Ratio (x)": 1.540125617208044, "Debt-to-Equity (x)": 1.194047829546459}, {"Fiscal Year": 2020, "Stock Price ($)": 112.2799987792969, "YoY Price Return (%)": 1.0524, "MD&A Sentiment P/N": 0.5312, "Sentiment Tone": "Cautious / Negative", "Revenue ($B)": 274.515, "Net Income ($B)": 57.411, "Operating Margin (%)": 24.15, "Return on Equity (%)": 0.8786635853012749, "Current Ratio (x)": 1.363604448155458, "Debt-to-Equity (x)": 1.78469214404873}, {"Fiscal Year": 2021, "Stock Price ($)": 146.9199981689453, "YoY Price Return (%)": 0.3085, "MD&A Sentiment P/N": 1.5806, "Sentiment Tone": "Positive", "Revenue ($B)": 365.817, "Net Income ($B)": 94.68, "Operating Margin (%)": 29.78, "Return on Equity (%)": 1.500713266761769, "Current Ratio (x)": 1.074553119595795, "Debt-to-Equity (x)": 1.976842605801236}, {"Fiscal Year": 2022, "Stock Price ($)": 150.4299926757812, "YoY Price Return (%)": 0.0239, "MD&A Sentiment P/N": 0.907, "Sentiment Tone": "Cautious / Negative", "Revenue ($B)": 394.328, "Net Income ($B)": 99.803, "Operating Margin (%)": 30.29, "Return on Equity (%)": 1.969588727502368, "Current Ratio (x)": 0.8793560286267226, "Debt-to-Equity (x)": 2.369533470161036}, {"Fiscal Year": 2023, "Stock Price ($)": 171.2100067138672, "YoY Price Return (%)": 0.1381, "MD&A Sentiment P/N": 0.5217, "Sentiment Tone": "Cautious / Negative", "Revenue ($B)": 383.285, "Net Income ($B)": 96.995, "Operating Margin (%)": 29.82, "Return on Equity (%)": 1.560760145463908, "Current Ratio (x)": 0.9880116717592975, "Debt-to-Equity (x)": 1.787532584558942}, {"Fiscal Year": 2024, "Stock Price ($)": 227.7899932861328, "YoY Price Return (%)": 0.3305, "MD&A Sentiment P/N": 0.7647, "Sentiment Tone": "Cautious / Negative", "Revenue ($B)": 391.035, "Net Income ($B)": 93.736, "Operating Margin (%)": 31.51, "Return on Equity (%)": 1.64593503072871, "Current Ratio (x)": 0.8673125765340832, "Debt-to-Equity (x)": 1.855768217734855}, {"Fiscal Year": 2025, "Stock Price ($)": 255.4600067138672, "YoY Price Return (%)": 0.1215, "MD&A Sentiment P/N": 0.8649, "Sentiment Tone": "Cautious / Negative", "Revenue ($B)": 416.161, "Net Income ($B)": 112.01, "Operating Margin (%)": 31.97, "Return on Equity (%)": 1.519129833317511, "Current Ratio (x)": 0.8932929222186667, "Debt-to-Equity (x)": 1.229815686327696}], "Income Statement": [{"Line Item": "REVENUES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Total Net Sales / Revenue", "2016": 215639.0, "2017": 229234.0, "2018": 265595.0, "2019": 260174.0, "2020": 274515.0, "2021": 365817.0, "2022": 394328.0, "2023": 383285.0, "2024": 391035.0, "2025": 416161.0}, {"Line Item": "Cost of Goods and Services Sold", "2016": 131376.0, "2017": 141048.0, "2018": 163756.0, "2019": 161782.0, "2020": 169559.0, "2021": 212981.0, "2022": 223546.0, "2023": 214137.0, "2024": 210352.0, "2025": 220960.0}, {"Line Item": "Gross Profit", "2016": 84263.0, "2017": 88186.0, "2018": 101839.0, "2019": 98392.0, "2020": 104956.0, "2021": 152836.0, "2022": 170782.0, "2023": 169148.0, "2024": 180683.0, "2025": 195201.0}, {"Line Item": "OPERATING EXPENSES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Research and Development", "2016": 10045.0, "2017": 11581.0, "2018": 14236.0, "2019": 16217.0, "2020": 18752.0, "2021": 21914.0, "2022": 26251.0, "2023": 29915.0, "2024": 31370.0, "2025": 34550.0}, {"Line Item": "Selling, General and Administrative", "2016": 14194.0, "2017": 15261.0, "2018": 16705.0, "2019": 18245.0, "2020": 19916.0, "2021": 21973.0, "2022": 25094.0, "2023": 24932.0, "2024": 25330.0, "2025": 27601.0}, {"Line Item": "Total Operating Expenses", "2016": 24239.0, "2017": 26842.0, "2018": 30941.0, "2019": 34462.0, "2020": 38668.0, "2021": 43887.0, "2022": 51345.0, "2023": 54847.0, "2024": 56700.0, "2025": 62151.0}, {"Line Item": "Operating Income (EBIT)", "2016": 60024.0, "2017": 61344.0, "2018": 70898.0, "2019": 63930.0, "2020": 66288.0, "2021": 108949.0, "2022": 119437.0, "2023": 114301.0, "2024": 123216.0, "2025": 133050.0}, {"Line Item": "OTHER INCOME / (EXPENSE)", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Total Non-Operating Income / (Expense)", "2016": 1348.0, "2017": 2745.0, "2018": 2005.0, "2019": 1807.0, "2020": 803.0, "2021": 258.0, "2022": -334.0, "2023": -565.0, "2024": 269.0, "2025": -321.0}, {"Line Item": "Interest Expense", "2016": 1456.0, "2017": 2323.0, "2018": 3240.0, "2019": 3576.0, "2020": 2873.0, "2021": 2645.0, "2022": 2931.0, "2023": 3933.0, "2024": 3950.0, "2025": 3820.0}, {"Line Item": "Income Before Income Taxes", "2016": 61372.0, "2017": 64089.0, "2018": 72903.0, "2019": 65737.0, "2020": 67091.0, "2021": 109207.0, "2022": 119103.0, "2023": 113736.0, "2024": 123485.0, "2025": 132729.0}, {"Line Item": "Income Tax Expense / (Benefit)", "2016": 15685.0, "2017": 15738.0, "2018": 13372.0, "2019": 10481.0, "2020": 9680.0, "2021": 14527.0, "2022": 19300.0, "2023": 16741.0, "2024": 29749.0, "2025": 20719.0}, {"Line Item": "Net Income", "2016": 45687.0, "2017": 48351.0, "2018": 59531.0, "2019": 55256.0, "2020": 57411.0, "2021": 94680.0, "2022": 99803.0, "2023": 96995.0, "2024": 93736.0, "2025": 112010.0}, {"Line Item": "PER SHARE DATA", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Basic Earnings Per Share (USD)", "2016": 2.09, "2017": 2.32, "2018": 3.0, "2019": 2.99, "2020": 3.31, "2021": 5.67, "2022": 6.15, "2023": 6.16, "2024": 6.11, "2025": 7.51}, {"Line Item": "Diluted Earnings Per Share (USD)", "2016": 2.08, "2017": 2.3, "2018": 2.98, "2019": 2.97, "2020": 3.28, "2021": 5.61, "2022": 6.11, "2023": 6.13, "2024": 6.08, "2025": 7.46}, {"Line Item": "Weighted Average Shares (Basic)", "2016": 21883.0, "2017": 20869.0, "2018": 19822.0, "2019": 18471.0, "2020": 17352.0, "2021": 16701.0, "2022": 16216.0, "2023": 15744.0, "2024": 15344.0, "2025": 14915.0}, {"Line Item": "Weighted Average Shares (Diluted)", "2016": 22001.0, "2017": 21006.0, "2018": 20001.0, "2019": 18596.0, "2020": 17528.0, "2021": 16865.0, "2022": 16326.0, "2023": 15813.0, "2024": 15408.0, "2025": 15015.0}], "Balance Sheet": [{"Line Item": "CURRENT ASSETS", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Cash and Cash Equivalents", "2016": 20484.0, "2017": 20289.0, "2018": 25913.0, "2019": 48844.0, "2020": 38016.0, "2021": 34940.0, "2022": 23646.0, "2023": 29965.0, "2024": 29943.0, "2025": 35934.0}, {"Line Item": "Marketable Securities (Current)", "2016": 46671.0, "2017": 53892.0, "2018": 40388.0, "2019": 51713.0, "2020": 52927.0, "2021": 27699.0, "2022": 24658.0, "2023": 31590.0, "2024": 35228.0, "2025": 18763.0}, {"Line Item": "Accounts Receivable, Net", "2016": 15754.0, "2017": 17874.0, "2018": 23186.0, "2019": 22926.0, "2020": 16120.0, "2021": 26278.0, "2022": 28184.0, "2023": 29508.0, "2024": 33410.0, "2025": 39777.0}, {"Line Item": "Inventories", "2016": 2132.0, "2017": 4855.0, "2018": 3956.0, "2019": 4106.0, "2020": 4061.0, "2021": 6580.0, "2022": 4946.0, "2023": 6331.0, "2024": 7286.0, "2025": 5718.0}, {"Line Item": "Other Current Assets", "2016": 21828.0, "2017": 31735.0, "2018": 37896.0, "2019": 35230.0, "2020": 32589.0, "2021": 39339.0, "2022": 33971.0, "2023": 46172.0, "2024": 47120.0, "2025": 47765.0}, {"Line Item": "Total Current Assets", "2016": 106869.0, "2017": 128645.0, "2018": 131339.0, "2019": 162819.0, "2020": 143713.0, "2021": 134836.0, "2022": 135405.0, "2023": 143566.0, "2024": 152987.0, "2025": 147957.0}, {"Line Item": "NON-CURRENT ASSETS", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Property, Plant and Equipment, Net", "2016": 27010.0, "2017": 33783.0, "2018": 41304.0, "2019": 37378.0, "2020": 36766.0, "2021": 39440.0, "2022": 42117.0, "2023": 43715.0, "2024": 45680.0, "2025": 49834.0}, {"Line Item": "Goodwill", "2016": 5414.0, "2017": 5717.0, "2018": 0.0, "2019": 0.0, "2020": 0.0, "2021": 0.0, "2022": 0.0, "2023": 0.0, "2024": 0.0, "2025": 0.0}, {"Line Item": "Intangible Assets, Net", "2016": 3206.0, "2017": 2298.0, "2018": 0.0, "2019": 0.0, "2020": 0.0, "2021": 0.0, "2022": 0.0, "2023": 0.0, "2024": 0.0, "2025": 0.0}, {"Line Item": "Marketable Securities (Non-Current)", "2016": 170430.0, "2017": 194714.0, "2018": 170799.0, "2019": 105341.0, "2020": 100887.0, "2021": 127877.0, "2022": 120805.0, "2023": 100544.0, "2024": 109558.0, "2025": 77723.0}, {"Line Item": "Other Non-Current Assets", "2016": 8757.0, "2017": 10162.0, "2018": 22283.0, "2019": 32978.0, "2020": 42522.0, "2021": 48849.0, "2022": 54428.0, "2023": 64758.0, "2024": 56755.0, "2025": 83727.0}, {"Line Item": "Total Assets", "2016": 321686.0, "2017": 375319.0, "2018": 365725.0, "2019": 338516.0, "2020": 323888.0, "2021": 351002.0, "2022": 352755.0, "2023": 352583.0, "2024": 364980.0, "2025": 359241.0}, {"Line Item": "CURRENT LIABILITIES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Accounts Payable", "2016": 37294.0, "2017": 44242.0, "2018": 55888.0, "2019": 46236.0, "2020": 42296.0, "2021": 54763.0, "2022": 64115.0, "2023": 62611.0, "2024": 68960.0, "2025": 69860.0}, {"Line Item": "Accrued Liabilities", "2016": 22027.0, "2017": 25744.0, "2018": 33327.0, "2019": 37720.0, "2020": 38510.0, "2021": 47493.0, "2022": 60845.0, "2023": 58829.0, "2024": 79247.0, "2025": 75231.0}, {"Line Item": "Deferred Revenue (Current)", "2016": 8080.0, "2017": 7548.0, "2018": 5966.0, "2019": 5522.0, "2020": 6643.0, "2021": 7612.0, "2022": 7912.0, "2023": 8061.0, "2024": 8249.0, "2025": 8190.0}, {"Line Item": "Commercial Paper and Short-Term Debt", "2016": 11605.0, "2017": 23280.0, "2018": 21685.0, "2019": 16240.0, "2020": 17943.0, "2021": 15613.0, "2022": 21110.0, "2023": 15807.0, "2024": 19936.0, "2025": 12350.0}, {"Line Item": "Total Current Liabilities", "2016": 79006.0, "2017": 100814.0, "2018": 116866.0, "2019": 105718.0, "2020": 105392.0, "2021": 125481.0, "2022": 153982.0, "2023": 145308.0, "2024": 176392.0, "2025": 165631.0}, {"Line Item": "NON-CURRENT LIABILITIES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Long-Term Debt", "2016": 75427.0, "2017": 97207.0, "2018": 93735.0, "2019": 91807.0, "2020": 98667.0, "2021": 109106.0, "2022": 98959.0, "2023": 95281.0, "2024": 85750.0, "2025": 78328.0}, {"Line Item": "Deferred Revenue (Non-Current)", "2016": 2930.0, "2017": 2797.0, "2018": 2930.0, "2019": 2625.0, "2020": 3514.0, "2021": 4330.0, "2022": 3713.0, "2023": 4027.0, "2024": 4547.0, "2025": 4210.0}, {"Line Item": "Other Non-Current Liabilities", "2016": 36074.0, "2017": 40454.0, "2018": 45047.0, "2019": 47878.0, "2020": 50990.0, "2021": 48995.0, "2022": 49142.0, "2023": 45821.0, "2024": 41341.0, "2025": 37339.0}, {"Line Item": "Total Liabilities", "2016": 193437.0, "2017": 241272.0, "2018": 258578.0, "2019": 248028.0, "2020": 258549.0, "2021": 287912.0, "2022": 302083.0, "2023": 290437.0, "2024": 308030.0, "2025": 285508.0}, {"Line Item": "STOCKHOLDERS' EQUITY", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Common Stock", "2016": 31251.0, "2017": 35867.0, "2018": 40201.0, "2019": 45174.0, "2020": 50779.0, "2021": 57365.0, "2022": 64849.0, "2023": 73812.0, "2024": 83274.0, "2025": 93568.0}, {"Line Item": "Additional Paid-in Capital", "2016": 0.0, "2017": 0.0, "2018": 0.0, "2019": 0.0, "2020": 0.0, "2021": 0.0, "2022": 0.0, "2023": 0.0, "2024": 0.0, "2025": 0.0}, {"Line Item": "Retained Earnings / (Accumulated Deficit)", "2016": 96364.0, "2017": 98330.0, "2018": 70400.0, "2019": 45898.0, "2020": 14966.0, "2021": 5562.0, "2022": -3068.0, "2023": -214.0, "2024": -19154.0, "2025": -14264.0}, {"Line Item": "Accumulated Other Comprehensive Income / (Loss)", "2016": 634.0, "2017": -150.0, "2018": -3454.0, "2019": -584.0, "2020": -406.0, "2021": 163.0, "2022": -11109.0, "2023": -11452.0, "2024": -7170.0, "2025": -5571.0}, {"Line Item": "Total Stockholders' Equity", "2016": 128249.0, "2017": 134047.0, "2018": 107147.0, "2019": 90488.0, "2020": 65339.0, "2021": 63090.0, "2022": 50672.0, "2023": 62146.0, "2024": 56950.0, "2025": 73733.0}, {"Line Item": "Total Liabilities and Stockholders' Equity", "2016": 321686.0, "2017": 375319.0, "2018": 365725.0, "2019": 338516.0, "2020": 323888.0, "2021": 351002.0, "2022": 352755.0, "2023": 352583.0, "2024": 364980.0, "2025": 359241.0}], "Cash Flows": [{"Line Item": "OPERATING ACTIVITIES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Net Income", "2016": 45687.0, "2017": 48351.0, "2018": 59531.0, "2019": 55256.0, "2020": 57411.0, "2021": 94680.0, "2022": 99803.0, "2023": 96995.0, "2024": 93736.0, "2025": 112010.0}, {"Line Item": "Depreciation and Amortization", "2016": 10505.0, "2017": 10157.0, "2018": 10903.0, "2019": 12547.0, "2020": 11056.0, "2021": 11284.0, "2022": 11104.0, "2023": 11519.0, "2024": 11520.0, "2025": 11950.0}, {"Line Item": "Share-Based Compensation", "2016": 4210.0, "2017": 4840.0, "2018": 5340.0, "2019": 6068.0, "2020": 6829.0, "2021": 7906.0, "2022": 9038.0, "2023": 10833.0, "2024": 11640.0, "2025": 12800.0}, {"Line Item": "Deferred Income Taxes", "2016": 4938.0, "2017": 5966.0, "2018": -32590.0, "2019": -340.0, "2020": -215.0, "2021": -4774.0, "2022": 895.0, "2023": -222.0, "2024": -1071.0, "2025": -1850.0}, {"Line Item": "Change in Accounts Receivable", "2016": 527.0, "2017": -2093.0, "2018": -5322.0, "2019": 245.0, "2020": 6917.0, "2021": -10125.0, "2022": -1823.0, "2023": -1688.0, "2024": -3900.0, "2025": -4200.0}, {"Line Item": "Change in Inventories", "2016": 217.0, "2017": -2723.0, "2018": 828.0, "2019": -289.0, "2020": -127.0, "2021": -2642.0, "2022": 1484.0, "2023": -1618.0, "2024": -955.0, "2025": 613.0}, {"Line Item": "Change in Accounts Payable", "2016": 2172.0, "2017": 8966.0, "2018": 9175.0, "2019": -1923.0, "2020": -4062.0, "2021": 12326.0, "2022": 9448.0, "2023": -1886.0, "2024": 6350.0, "2025": 5200.0}, {"Line Item": "Net Cash Provided by Operating Activities", "2016": 65824.0, "2017": 63598.0, "2018": 77434.0, "2019": 69391.0, "2020": 80674.0, "2021": 104038.0, "2022": 122151.0, "2023": 110543.0, "2024": 118260.0, "2025": 111482.0}, {"Line Item": "INVESTING ACTIVITIES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Capital Expenditures (Property, Plant and Equipment)", "2016": -12734.0, "2017": -12451.0, "2018": -13313.0, "2019": -10495.0, "2020": -7309.0, "2021": -11085.0, "2022": -10708.0, "2023": -10959.0, "2024": -9447.0, "2025": -12715.0}, {"Line Item": "Purchases of Marketable Securities", "2016": -142428.0, "2017": -159486.0, "2018": -71356.0, "2019": -39630.0, "2020": -114938.0, "2021": -109558.0, "2022": -76923.0, "2023": -29514.0, "2024": -48660.0, "2025": -38500.0}, {"Line Item": "Proceeds from Sales/Maturities of Marketable Securities", "2016": 119937.0, "2017": 146194.0, "2018": 88206.0, "2019": 98724.0, "2020": 120541.0, "2021": 106877.0, "2022": 98844.0, "2023": 43900.0, "2024": 61760.0, "2025": 56200.0}, {"Line Item": "Payments for Business Acquisitions, Net", "2016": -297.0, "2017": -329.0, "2018": -721.0, "2019": -624.0, "2020": -1524.0, "2021": -33.0, "2022": -306.0, "2023": 0.0, "2024": 0.0, "2025": 0.0}, {"Line Item": "Net Cash Used in Investing Activities", "2016": -45977.0, "2017": -46446.0, "2018": 16066.0, "2019": 45896.0, "2020": -4289.0, "2021": -14545.0, "2022": -22354.0, "2023": 3705.0, "2024": 2490.0, "2025": 4985.0}, {"Line Item": "FINANCING ACTIVITIES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Repurchases of Common Stock", "2016": -29722.0, "2017": -32900.0, "2018": -72738.0, "2019": -66897.0, "2020": -72358.0, "2021": -85971.0, "2022": -89402.0, "2023": -77550.0, "2024": -94949.0, "2025": -90711.0}, {"Line Item": "Dividends Paid", "2016": -12150.0, "2017": -12769.0, "2018": -13712.0, "2019": -14119.0, "2020": -14081.0, "2021": -14467.0, "2022": -14841.0, "2023": -15025.0, "2024": -15234.0, "2025": -15421.0}, {"Line Item": "Proceeds from Issuance of Common Stock", "2016": 495.0, "2017": 555.0, "2018": 569.0, "2019": 781.0, "2020": 880.0, "2021": 1105.0, "2022": 1210.0, "2023": 1285.0, "2024": 1340.0, "2025": 1420.0}, {"Line Item": "Proceeds from Issuance of Long-Term Debt", "2016": 24954.0, "2017": 28662.0, "2018": 6969.0, "2019": 6963.0, "2020": 16091.0, "2021": 20393.0, "2022": 5465.0, "2023": 5228.0, "2024": 4800.0, "2025": 5200.0}, {"Line Item": "Repayments of Long-Term Debt", "2016": -2500.0, "2017": -3500.0, "2018": -6500.0, "2019": -8805.0, "2020": -12629.0, "2021": -11135.0, "2022": -9543.0, "2023": -11151.0, "2024": -10800.0, "2025": -11250.0}, {"Line Item": "Net Cash Used in Financing Activities", "2016": -20483.0, "2017": -17347.0, "2018": -86820.0, "2019": -90976.0, "2020": -86896.0, "2021": -93353.0, "2022": -110749.0, "2023": -108488.0, "2024": -120220.0, "2025": -110762.0}, {"Line Item": "NET CHANGE IN CASH", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Net Increase / (Decrease) in Cash and Cash Equivalents", "2016": -636.0, "2017": -195.0, "2018": 6680.0, "2019": 24311.0, "2020": -10433.0, "2021": -3860.0, "2022": -10952.0, "2023": 5760.0, "2024": 530.0, "2025": 5705.0}, {"Line Item": "Cash and Cash Equivalents at Beginning of Period", "2016": 21120.0, "2017": 20484.0, "2018": 20289.0, "2019": 25913.0, "2020": 50224.0, "2021": 39789.0, "2022": 35929.0, "2023": 24977.0, "2024": 30737.0, "2025": 31267.0}, {"Line Item": "Cash and Cash Equivalents at End of Period", "2016": 20484.0, "2017": 20289.0, "2018": 26969.0, "2019": 50224.0, "2020": 39789.0, "2021": 35929.0, "2022": 24977.0, "2023": 30737.0, "2024": 31267.0, "2025": 36972.0}], "Financial Ratios": [{"Ratio / Metric": "Current Ratio", "Category": "Liquidity", "Formula / Definition": "Total Current Assets / Total Current Liabilities", "Format": "multiplier", "2016": 1.352669417512594, "2017": 1.276062848413911, "2018": 1.12384269162973, "2019": 1.540125617208044, "2020": 1.363604448155458, "2021": 1.074553119595795, "2022": 0.8793560286267226, "2023": 0.9880116717592975, "2024": 0.8673125765340832, "2025": 0.8932929222186667}, {"Ratio / Metric": "Quick Ratio (Acid-Test)", "Category": "Liquidity", "Formula / Definition": "(Cash + Mkt Securities + Accounts Rec) / Current Liab", "Format": "multiplier", "2016": 1.049401311292813, "2017": 0.9131172257821334, "2018": 0.765723135899235, "2019": 1.168041393140241, "2020": 1.01585509336572, "2021": 0.7086092715231788, "2022": 0.4967333844215558, "2023": 0.6266895146860462, "2024": 0.5588745521338836, "2025": 0.5703883934770665}, {"Ratio / Metric": "Cash Ratio", "Category": "Liquidity", "Formula / Definition": "(Cash & Cash Equiv + Mkt Securities) / Current Liab", "Format": "multiplier", "2016": 0.8499987342733464, "2017": 0.7358204217668181, "2018": 0.5673249704790101, "2019": 0.9511814449762576, "2020": 0.8629023075755275, "2021": 0.4991911125987201, "2022": 0.3136990037796625, "2023": 0.4236174195501968, "2024": 0.3694668692457708, "2025": 0.3302340745391865}, {"Ratio / Metric": "Operating Cash Flow Ratio", "Category": "Liquidity", "Formula / Definition": "Cash Flow from Operations / Current Liabilities", "Format": "multiplier", "2016": 0.8331519125129737, "2017": 0.6308449223322158, "2018": 0.662587921208906, "2019": 0.6563782894114532, "2020": 0.7654660695308941, "2021": 0.8291135709788733, "2022": 0.7932810328479952, "2023": 0.7607495802020535, "2024": 0.6704385686425688, "2025": 0.6730744848488508}, {"Ratio / Metric": "Debt-to-Equity Ratio", "Category": "Solvency", "Formula / Definition": "Total Debt (Short + Long-Term) / Stockholders' Equity", "Format": "multiplier", "2016": 0.6786173771335449, "2017": 0.8988414511328117, "2018": 1.077211681148329, "2019": 1.194047829546459, "2020": 1.78469214404873, "2021": 1.976842605801236, "2022": 2.369533470161036, "2023": 1.787532584558942, "2024": 1.855768217734855, "2025": 1.229815686327696}, {"Ratio / Metric": "Debt-to-Assets Ratio", "Category": "Solvency", "Formula / Definition": "Total Debt / Total Assets", "Format": "multiplier", "2016": 0.2705495421000603, "2017": 0.3210255809058428, "2018": 0.3155923166313487, "2019": 0.3191784140188352, "2020": 0.3600318628661759, "2021": 0.3553227616936656, "2022": 0.3403750478377344, "2023": 0.3150690759338936, "2024": 0.2895665515918681, "2025": 0.2524155093655791}, {"Ratio / Metric": "Financial Leverage (Equity Multiplier)", "Category": "Solvency", "Formula / Definition": "Total Assets / Total Stockholders' Equity", "Format": "multiplier", "2016": 2.508292462319394, "2017": 2.799906003118309, "2018": 3.413301352347709, "2019": 3.74100433206613, "2020": 4.957039440456695, "2021": 5.563512442542399, "2022": 6.961536943479634, "2023": 5.673462491552152, "2024": 6.408779631255487, "2025": 4.872187487285204}, {"Ratio / Metric": "Interest Coverage Ratio", "Category": "Solvency", "Formula / Definition": "Operating Income (EBIT) / Interest Expense", "Format": "multiplier", "2016": 41.22527472527472, "2017": 26.40723202755058, "2018": 21.8820987654321, "2019": 17.87751677852349, "2020": 23.07274625826662, "2021": 41.19054820415879, "2022": 40.74957352439441, "2023": 29.06203915586067, "2024": 31.19392405063291, "2025": 34.82984293193717}, {"Ratio / Metric": "Asset Turnover Ratio", "Category": "Efficiency", "Formula / Definition": "Total Revenues / Total Assets", "Format": "multiplier", "2016": 0.670340021014281, "2017": 0.6107711040474902, "2018": 0.7262150522933899, "2019": 0.7685722388306608, "2020": 0.8475615027416885, "2021": 1.042207736708053, "2022": 1.117852333772732, "2023": 1.087077369016657, "2024": 1.071387473286207, "2025": 1.158445166336804}, {"Ratio / Metric": "Receivables Turnover Ratio", "Category": "Efficiency", "Formula / Definition": "Total Revenues / Accounts Receivable, Net", "Format": "multiplier", "2016": 13.68788879014853, "2017": 12.82499720264071, "2018": 11.45497282843095, "2019": 11.34842536857716, "2020": 17.02946650124069, "2021": 13.92103660856991, "2022": 13.99120068123758, "2023": 12.98918937237359, "2024": 11.70413049985034, "2025": 10.46235261583327}, {"Ratio / Metric": "Days Sales Outstanding (DSO)", "Category": "Efficiency", "Formula / Definition": "(Accounts Receivable * 365) / Total Revenues", "Format": "days", "2016": 26.66590922792259, "2017": 28.46004519399391, "2018": 31.86389050998701, "2019": 32.16305241876591, "2020": 21.43343715279675, "2021": 26.21931184171321, "2022": 26.08782536365665, "2023": 28.1002909062447, "2024": 31.18557162402343, "2025": 34.88699085209811}, {"Ratio / Metric": "Inventory Turnover Ratio", "Category": "Efficiency", "Formula / Definition": "Cost of Goods Sold / Inventories", "Format": "multiplier", "2016": 61.62101313320826, "2017": 29.05211122554068, "2018": 41.3943377148635, "2019": 39.40136385776912, "2020": 41.75301649839941, "2021": 32.36793313069909, "2022": 45.19733117670845, "2023": 33.82356657716001, "2024": 28.87071095251166, "2025": 38.6428821266177}, {"Ratio / Metric": "Days Inventory Outstanding (DIO)", "Category": "Efficiency", "Formula / Definition": "(Inventories * 365) / Cost of Goods Sold", "Format": "days", "2016": 5.923304104250396, "2017": 12.56363082071351, "2018": 8.817631109699798, "2019": 9.263638723714628, "2020": 8.741883356235881, "2021": 11.27659274770989, "2022": 8.07569806661716, "2023": 10.79129249032162, "2024": 12.64257054841409, "2025": 9.445465242577843}, {"Ratio / Metric": "Gross Profit Margin", "Category": "Profitability", "Formula / Definition": "Gross Profit / Total Revenues", "Format": "percent", "2016": 0.3907595564809705, "2017": 0.384698604918991, "2018": 0.383437188200079, "2019": 0.3781776810903472, "2020": 0.3823324772781087, "2021": 0.4177935962516778, "2022": 0.4330963056136009, "2023": 0.4413112957720756, "2024": 0.4620634981523393, "2025": 0.4690516410716045}, {"Ratio / Metric": "Operating Profit Margin", "Category": "Profitability", "Formula / Definition": "Operating Income (EBIT) / Total Revenues", "Format": "percent", "2016": 0.2783541010670612, "2017": 0.2676042820872994, "2018": 0.2669402661947702, "2019": 0.2457201718849693, "2020": 0.2414731435440686, "2021": 0.2978237752756159, "2022": 0.3028874439552859, "2023": 0.2982141226502472, "2024": 0.3151022287007557, "2025": 0.3197079976259188}, {"Ratio / Metric": "Net Profit Margin", "Category": "Profitability", "Formula / Definition": "Net Income / Total Revenues", "Format": "percent", "2016": 0.211867983064288, "2017": 0.2109242084507534, "2018": 0.2241420207458725, "2019": 0.2123809450598446, "2020": 0.2091361127807224, "2021": 0.2588179335569424, "2022": 0.2530964070519973, "2023": 0.2530623426432028, "2024": 0.2397125576994387, "2025": 0.2691506412181824}, {"Ratio / Metric": "Return on Assets (ROA)", "Category": "Profitability", "Formula / Definition": "Net Income / Total Assets", "Format": "percent", "2016": 0.1420235882195681, "2017": 0.1288264116658096, "2018": 0.1627753093171098, "2019": 0.1632300984296163, "2020": 0.1772557180259843, "2021": 0.2697420527518362, "2022": 0.2829244092925685, "2023": 0.2750983456377648, "2024": 0.2568250315085758, "2025": 0.3117962593356549}, {"Ratio / Metric": "Return on Equity (ROE)", "Category": "Profitability", "Formula / Definition": "Net Income / Total Stockholders' Equity", "Format": "percent", "2016": 0.3562366958026963, "2017": 0.3607018433832909, "2018": 0.5556011834209077, "2019": 0.6106445053487756, "2020": 0.8786635853012749, "2021": 1.500713266761769, "2022": 1.969588727502368, "2023": 1.560760145463908, "2024": 1.64593503072871, "2025": 1.519129833317511}], "Sentiment Analysis": [{"Fiscal Year": 2016, "Total Words": 5068, "Positive Count": 132, "Negative Count": 176, "Net Score": -44, "P/N Ratio": 0.75, "Net Sentiment %": -0.008682, "Uncertainty Count": 126, "Litigious Count": 53, "Strong Modal": 22, "Weak Modal": 24, "Tone Classification": "Cautious / Negative"}, {"Fiscal Year": 2017, "Total Words": 5234, "Positive Count": 120, "Negative Count": 179, "Net Score": -59, "P/N Ratio": 0.6704, "Net Sentiment %": -0.011272, "Uncertainty Count": 130, "Litigious Count": 50, "Strong Modal": 29, "Weak Modal": 29, "Tone Classification": "Cautious / Negative"}, {"Fiscal Year": 2018, "Total Words": 5031, "Positive Count": 127, "Negative Count": 142, "Net Score": -15, "P/N Ratio": 0.8944, "Net Sentiment %": -0.002982, "Uncertainty Count": 120, "Litigious Count": 54, "Strong Modal": 25, "Weak Modal": 32, "Tone Classification": "Cautious / Negative"}, {"Fiscal Year": 2019, "Total Words": 2962, "Positive Count": 57, "Negative Count": 92, "Net Score": -35, "P/N Ratio": 0.6196, "Net Sentiment %": -0.011816, "Uncertainty Count": 64, "Litigious Count": 32, "Strong Modal": 10, "Weak Modal": 14, "Tone Classification": "Cautious / Negative"}, {"Fiscal Year": 2020, "Total Words": 2784, "Positive Count": 51, "Negative Count": 96, "Net Score": -45, "P/N Ratio": 0.5312, "Net Sentiment %": -0.016164, "Uncertainty Count": 61, "Litigious Count": 26, "Strong Modal": 10, "Weak Modal": 13, "Tone Classification": "Cautious / Negative"}, {"Fiscal Year": 2021, "Total Words": 1626, "Positive Count": 49, "Negative Count": 31, "Net Score": 18, "P/N Ratio": 1.5806, "Net Sentiment %": 0.01107, "Uncertainty Count": 32, "Litigious Count": 14, "Strong Modal": 5, "Weak Modal": 1, "Tone Classification": "Positive"}, {"Fiscal Year": 2022, "Total Words": 1542, "Positive Count": 39, "Negative Count": 43, "Net Score": -4, "P/N Ratio": 0.907, "Net Sentiment %": -0.002594, "Uncertainty Count": 24, "Litigious Count": 13, "Strong Modal": 3, "Weak Modal": 1, "Tone Classification": "Cautious / Negative"}, {"Fiscal Year": 2023, "Total Words": 1358, "Positive Count": 24, "Negative Count": 46, "Net Score": -22, "P/N Ratio": 0.5217, "Net Sentiment %": -0.0162, "Uncertainty Count": 23, "Litigious Count": 12, "Strong Modal": 3, "Weak Modal": 2, "Tone Classification": "Cautious / Negative"}, {"Fiscal Year": 2024, "Total Words": 1338, "Positive Count": 26, "Negative Count": 34, "Net Score": -8, "P/N Ratio": 0.7647, "Net Sentiment %": -0.005979, "Uncertainty Count": 23, "Litigious Count": 13, "Strong Modal": 9, "Weak Modal": 2, "Tone Classification": "Cautious / Negative"}, {"Fiscal Year": 2025, "Total Words": 1569, "Positive Count": 32, "Negative Count": 37, "Net Score": -5, "P/N Ratio": 0.8649, "Net Sentiment %": -0.003187, "Uncertainty Count": 29, "Litigious Count": 13, "Strong Modal": 12, "Weak Modal": 3, "Tone Classification": "Cautious / Negative"}], "Stock Price": [{"Fiscal Year": 2016, "Balance Sheet Date": "2016-09-24", "Actual Trading Date": "2016-09-23", "Closing Price ($)": 28.17749977111816, "Adjusted Close ($)": 25.7751636505127, "Trading Volume": 209924800, "YoY Change ($)": null, "YoY % Return": null}, {"Fiscal Year": 2017, "Balance Sheet Date": "2017-09-30", "Actual Trading Date": "2017-09-29", "Closing Price ($)": 38.52999877929688, "Adjusted Close ($)": 35.86673736572266, "Trading Volume": 105199200, "YoY Change ($)": 10.35, "YoY % Return": 0.3673}, {"Fiscal Year": 2018, "Balance Sheet Date": "2018-09-29", "Actual Trading Date": "2018-09-28", "Closing Price ($)": 56.43500137329102, "Adjusted Close ($)": 53.32841873168945, "Trading Volume": 91717600, "YoY Change ($)": 17.91, "YoY % Return": 0.4648}, {"Fiscal Year": 2019, "Balance Sheet Date": "2019-09-28", "Actual Trading Date": "2019-09-27", "Closing Price ($)": 54.70500183105469, "Adjusted Close ($)": 52.49583053588867, "Trading Volume": 101408000, "YoY Change ($)": -1.73, "YoY % Return": -0.0307}, {"Fiscal Year": 2020, "Balance Sheet Date": "2020-09-26", "Actual Trading Date": "2020-09-25", "Closing Price ($)": 112.2799987792969, "Adjusted Close ($)": 108.8147811889648, "Trading Volume": 149981400, "YoY Change ($)": 57.57, "YoY % Return": 1.0524}, {"Fiscal Year": 2021, "Balance Sheet Date": "2021-09-25", "Actual Trading Date": "2021-09-24", "Closing Price ($)": 146.9199981689453, "Adjusted Close ($)": 143.3015289306641, "Trading Volume": 53477900, "YoY Change ($)": 34.64, "YoY % Return": 0.3085}, {"Fiscal Year": 2022, "Balance Sheet Date": "2022-09-24", "Actual Trading Date": "2022-09-23", "Closing Price ($)": 150.4299926757812, "Adjusted Close ($)": 147.5472717285156, "Trading Volume": 96029900, "YoY Change ($)": 3.51, "YoY % Return": 0.0239}, {"Fiscal Year": 2023, "Balance Sheet Date": "2023-09-30", "Actual Trading Date": "2023-09-29", "Closing Price ($)": 171.2100067138672, "Adjusted Close ($)": 168.92529296875, "Trading Volume": 51861100, "YoY Change ($)": 20.78, "YoY % Return": 0.1381}, {"Fiscal Year": 2024, "Balance Sheet Date": "2024-09-28", "Actual Trading Date": "2024-09-27", "Closing Price ($)": 227.7899932861328, "Adjusted Close ($)": 225.9002990722656, "Trading Volume": 34026000, "YoY Change ($)": 56.58, "YoY % Return": 0.3305}, {"Fiscal Year": 2025, "Balance Sheet Date": "2025-09-27", "Actual Trading Date": "2025-09-26", "Closing Price ($)": 255.4600067138672, "Adjusted Close ($)": 254.5198059082031, "Trading Volume": 46076300, "YoY Change ($)": 27.67, "YoY % Return": 0.1215}]}}, "MSFT": {"metadata": {"name": "Microsoft Corporation", "icon": "\ud83e\ude9f", "sector": "Technology", "industry": "Systems Software & Cloud Infrastructure", "exchange": "NASDAQ: MSFT", "fy_end": "June 30", "description": "Global technology leader in cloud computing (Azure), enterprise productivity (Office 365), operating systems, and AI."}, "correlation": {"r": 0.545, "r2": 0.297}, "sheets": {"Executive Summary": [{"Fiscal Year": 2016, "Stock Price ($)": 51.16999816894531, "YoY Price Return (%)": 0.0, "MD&A Sentiment P/N": 0.5226, "Sentiment Tone": "Cautious / Negative", "Revenue ($B)": 85.32, "Net Income ($B)": 16.798, "Operating Margin (%)": 23.65, "Return on Equity (%)": 23.33, "Current Ratio (x)": 2.338697523318318, "Debt-to-Equity (x)": 0.9088712029667902}, {"Fiscal Year": 2017, "Stock Price ($)": 68.93000030517578, "YoY Price Return (%)": 34.71, "MD&A Sentiment P/N": 0.526, "Sentiment Tone": "Cautious / Negative", "Revenue ($B)": 89.95, "Net Income ($B)": 21.204, "Operating Margin (%)": 24.82, "Return on Equity (%)": 24.67, "Current Ratio (x)": 2.359981693093572, "Debt-to-Equity (x)": 1.033729304587604}, {"Fiscal Year": 2018, "Stock Price ($)": 98.61000061035156, "YoY Price Return (%)": 43.06, "MD&A Sentiment P/N": 0.7429, "Sentiment Tone": "Cautious / Negative", "Revenue ($B)": 110.36, "Net Income ($B)": 16.571, "Operating Margin (%)": 31.77, "Return on Equity (%)": 20.03, "Current Ratio (x)": 2.242124319467202, "Debt-to-Equity (x)": 0.9698735462656254}, {"Fiscal Year": 2019, "Stock Price ($)": 133.9600067138672, "YoY Price Return (%)": 35.85, "MD&A Sentiment P/N": 1.0692, "Sentiment Tone": "Positive", "Revenue ($B)": 125.843, "Net Income ($B)": 39.24, "Operating Margin (%)": 34.14, "Return on Equity (%)": 38.35, "Current Ratio (x)": 2.817668207498716, "Debt-to-Equity (x)": 0.7579106811296785}, {"Fiscal Year": 2020, "Stock Price ($)": 203.5099945068359, "YoY Price Return (%)": 51.92, "MD&A Sentiment P/N": 1.25, "Sentiment Tone": "Positive", "Revenue ($B)": 143.015, "Net Income ($B)": 44.281, "Operating Margin (%)": 37.03, "Return on Equity (%)": 37.43, "Current Ratio (x)": 2.517854671280277, "Debt-to-Equity (x)": 0.6229628753043008}, {"Fiscal Year": 2021, "Stock Price ($)": 270.8999938964844, "YoY Price Return (%)": 33.11, "MD&A Sentiment P/N": 1.2661, "Sentiment Tone": "Positive", "Revenue ($B)": 168.088, "Net Income ($B)": 61.271, "Operating Margin (%)": 41.59, "Return on Equity (%)": 43.15, "Current Ratio (x)": 2.418087909494907, "Debt-to-Equity (x)": 0.3953643969912951}, {"Fiscal Year": 2022, "Stock Price ($)": 256.8299865722656, "YoY Price Return (%)": -5.19, "MD&A Sentiment P/N": 1.5481, "Sentiment Tone": "Positive", "Revenue ($B)": 198.27, "Net Income ($B)": 72.738, "Operating Margin (%)": 42.06, "Return on Equity (%)": 43.68, "Current Ratio (x)": 1.811899202793378, "Debt-to-Equity (x)": 0.3866712300800999}, {"Fiscal Year": 2023, "Stock Price ($)": 340.5400085449219, "YoY Price Return (%)": 32.59, "MD&A Sentiment P/N": 0.9308, "Sentiment Tone": "Cautious / Negative", "Revenue ($B)": 211.915, "Net Income ($B)": 72.361, "Operating Margin (%)": 41.77, "Return on Equity (%)": 35.09, "Current Ratio (x)": 1.76916725076573, "Debt-to-Equity (x)": 0.3068425927272904}, {"Fiscal Year": 2024, "Stock Price ($)": 446.9500122070312, "YoY Price Return (%)": 31.25, "MD&A Sentiment P/N": 1.0635, "Sentiment Tone": "Positive", "Revenue ($B)": 245.122, "Net Income ($B)": 88.136, "Operating Margin (%)": 44.64, "Return on Equity (%)": 32.83, "Current Ratio (x)": 1.274954903181521, "Debt-to-Equity (x)": 0.2648346040815414}, {"Fiscal Year": 2025, "Stock Price ($)": 497.4100036621094, "YoY Price Return (%)": 11.29, "MD&A Sentiment P/N": 1.1466, "Sentiment Tone": "Positive", "Revenue ($B)": 281.724, "Net Income ($B)": 101.832, "Operating Margin (%)": 45.62, "Return on Equity (%)": 29.65, "Current Ratio (x)": 1.353446444504242, "Debt-to-Equity (x)": 0.2042948768338093}], "Income Statement": [{"Line Item": "REVENUES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Total Net Sales / Revenue", "2016": 85320.0, "2017": 89950.0, "2018": 110360.0, "2019": 125843.0, "2020": 143015.0, "2021": 168088.0, "2022": 198270.0, "2023": 211915.0, "2024": 245122.0, "2025": 281724.0}, {"Line Item": "Cost of Goods and Services Sold", "2016": 32780.0, "2017": 34261.0, "2018": 38353.0, "2019": 42910.0, "2020": 46078.0, "2021": 52232.0, "2022": 62650.0, "2023": 65863.0, "2024": 74114.0, "2025": 87831.0}, {"Line Item": "Gross Profit", "2016": 52540.0, "2017": 55689.0, "2018": 72007.0, "2019": 82933.0, "2020": 96937.0, "2021": 115856.0, "2022": 135620.0, "2023": 146052.0, "2024": 171008.0, "2025": 193893.0}, {"Line Item": "OPERATING EXPENSES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Research and Development", "2016": 11988.0, "2017": 13037.0, "2018": 14726.0, "2019": 16876.0, "2020": 19269.0, "2021": 20716.0, "2022": 24512.0, "2023": 27195.0, "2024": 29510.0, "2025": 32488.0}, {"Line Item": "Selling, General and Administrative", "2016": 19198.0, "2017": 20116.0, "2018": 22223.0, "2019": 23098.0, "2020": 24709.0, "2021": 25224.0, "2022": 27725.0, "2023": 29589.0, "2024": 32065.0, "2025": 32877.0}, {"Line Item": "Total Operating Expenses", "2016": 31186.0, "2017": 33153.0, "2018": 36949.0, "2019": 39974.0, "2020": 43978.0, "2021": 45940.0, "2022": 52237.0, "2023": 56784.0, "2024": 61575.0, "2025": 65365.0}, {"Line Item": "Operating Income (EBIT)", "2016": 20182.0, "2017": 22326.0, "2018": 35058.0, "2019": 42959.0, "2020": 52959.0, "2021": 69916.0, "2022": 83383.0, "2023": 88523.0, "2024": 109433.0, "2025": 128528.0}, {"Line Item": "OTHER INCOME / (EXPENSE)", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Total Non-Operating Income / (Expense)", "2016": -223.0, "2017": 575.0, "2018": 1416.0, "2019": 729.0, "2020": 77.0, "2021": 1186.0, "2022": 333.0, "2023": 788.0, "2024": -1646.0, "2025": -1228.0}, {"Line Item": "Interest Expense", "2016": 1243.0, "2017": 1567.0, "2018": 2234.0, "2019": 2772.0, "2020": 2591.0, "2021": 2346.0, "2022": 2063.0, "2023": 1968.0, "2024": 2935.0, "2025": 2800.0}, {"Line Item": "Income Before Income Taxes", "2016": 25639.0, "2017": 29901.0, "2018": 36474.0, "2019": 43688.0, "2020": 53036.0, "2021": 71102.0, "2022": 83716.0, "2023": 89311.0, "2024": 107787.0, "2025": 124500.0}, {"Line Item": "Income Tax Expense / (Benefit)", "2016": 5100.0, "2017": 4412.0, "2018": 19903.0, "2019": 4448.0, "2020": 8755.0, "2021": 9831.0, "2022": 10978.0, "2023": 16950.0, "2024": 19651.0, "2025": 22668.0}, {"Line Item": "Net Income", "2016": 16798.0, "2017": 21204.0, "2018": 16571.0, "2019": 39240.0, "2020": 44281.0, "2021": 61271.0, "2022": 72738.0, "2023": 72361.0, "2024": 88136.0, "2025": 101832.0}, {"Line Item": "PER SHARE DATA", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Basic Earnings Per Share (USD)", "2016": 2.12, "2017": 2.74, "2018": 2.15, "2019": 5.11, "2020": 5.82, "2021": 8.12, "2022": 9.7, "2023": 9.72, "2024": 11.86, "2025": 13.71}, {"Line Item": "Diluted Earnings Per Share (USD)", "2016": 2.1, "2017": 2.71, "2018": 2.13, "2019": 5.06, "2020": 5.76, "2021": 8.05, "2022": 9.65, "2023": 9.68, "2024": 11.8, "2025": 13.61}, {"Line Item": "Weighted Average Shares (Basic)", "2016": 7925.0, "2017": 7746.0, "2018": 7700.0, "2019": 7673.0, "2020": 7610.0, "2021": 7547.0, "2022": 7496.0, "2023": 7446.0, "2024": 7432.0, "2025": 7430.0}, {"Line Item": "Weighted Average Shares (Diluted)", "2016": 8013.0, "2017": 7832.0, "2018": 7794.0, "2019": 7753.0, "2020": 7683.0, "2021": 7608.0, "2022": 7558.0, "2023": 7472.0, "2024": 7469.0, "2025": 7482.0}], "Balance Sheet": [{"Line Item": "CURRENT ASSETS", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Cash and Cash Equivalents", "2016": 6510.0, "2017": 7663.0, "2018": 11946.0, "2019": 11356.0, "2020": 13576.0, "2021": 14224.0, "2022": 13931.0, "2023": 34704.0, "2024": 18300.0, "2025": 30242.0}, {"Line Item": "Marketable Securities (Current)", "2016": 106730.0, "2017": 125318.0, "2018": 121822.0, "2019": 122463.0, "2020": 122951.0, "2021": 116110.0, "2022": 90818.0, "2023": 76558.0, "2024": 57244.0, "2025": 64323.0}, {"Line Item": "Accounts Receivable, Net", "2016": 18277.0, "2017": 19792.0, "2018": 26481.0, "2019": 29524.0, "2020": 32011.0, "2021": 38043.0, "2022": 44261.0, "2023": 48688.0, "2024": 57868.0, "2025": 69905.0}, {"Line Item": "Inventories", "2016": 2251.0, "2017": 2181.0, "2018": 2662.0, "2019": 2063.0, "2020": 1895.0, "2021": 2636.0, "2022": 3742.0, "2023": 2500.0, "2024": 3033.0, "2025": 938.0}, {"Line Item": "Other Current Assets", "2016": 5892.0, "2017": 4897.0, "2018": 6764.0, "2019": 10146.0, "2020": 11482.0, "2021": 13446.0, "2022": 19527.0, "2023": 21807.0, "2024": 23289.0, "2025": 25723.0}, {"Line Item": "Total Current Assets", "2016": 139660.0, "2017": 159851.0, "2018": 169675.0, "2019": 175552.0, "2020": 181915.0, "2021": 184459.0, "2022": 172279.0, "2023": 184257.0, "2024": 159734.0, "2025": 191131.0}, {"Line Item": "NON-CURRENT ASSETS", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Property, Plant and Equipment, Net", "2016": 18356.0, "2017": 23734.0, "2018": 29460.0, "2019": 36477.0, "2020": 44151.0, "2021": 52903.0, "2022": 74059.0, "2023": 95641.0, "2024": 135591.0, "2025": 204966.0}, {"Line Item": "Goodwill", "2016": 17872.0, "2017": 35122.0, "2018": 35389.0, "2019": 42026.0, "2020": 43351.0, "2021": 49711.0, "2022": 67524.0, "2023": 67886.0, "2024": 119220.0, "2025": 119509.0}, {"Line Item": "Intangible Assets, Net", "2016": 3733.0, "2017": 10106.0, "2018": 8053.0, "2019": 7750.0, "2020": 7038.0, "2021": 7800.0, "2022": 11298.0, "2023": 9366.0, "2024": 27597.0, "2025": 22604.0}, {"Line Item": "Marketable Securities (Non-Current)", "2016": 10438.0, "2017": 6023.0, "2018": 1862.0, "2019": 2649.0, "2020": 3188.0, "2021": 5984.0, "2022": 6891.0, "2023": 9876.0, "2024": 14210.0, "2025": 14850.0}, {"Line Item": "Other Non-Current Assets", "2016": 3610.0, "2017": 6250.0, "2018": 4409.0, "2019": 22102.0, "2020": 21668.0, "2021": 32922.0, "2022": 32789.0, "2023": 44950.0, "2024": 55811.0, "2025": 65943.0}, {"Line Item": "Total Assets", "2016": 193694.0, "2017": 241086.0, "2018": 258848.0, "2019": 286556.0, "2020": 301311.0, "2021": 333779.0, "2022": 364840.0, "2023": 411976.0, "2024": 512163.0, "2025": 619003.0}, {"Line Item": "CURRENT LIABILITIES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Accounts Payable", "2016": 6316.0, "2017": 8610.0, "2018": 10592.0, "2019": 9382.0, "2020": 12530.0, "2021": 15163.0, "2022": 19000.0, "2023": 18095.0, "2024": 21996.0, "2025": 27724.0}, {"Line Item": "Accrued Liabilities", "2016": 20387.0, "2017": 22452.0, "2018": 28195.0, "2019": 9351.0, "2020": 10011.0, "2021": 11612.0, "2022": 13179.0, "2023": 13865.0, "2024": 17294.0, "2025": 18920.0}, {"Line Item": "Deferred Revenue (Current)", "2016": 20292.0, "2017": 23907.0, "2018": 28905.0, "2019": 32676.0, "2020": 36000.0, "2021": 41459.0, "2022": 45538.0, "2023": 50901.0, "2024": 57582.0, "2025": 64555.0}, {"Line Item": "Commercial Paper and Short-Term Debt", "2016": 12722.0, "2017": 12765.0, "2018": 7984.0, "2019": 10895.0, "2020": 13709.0, "2021": 8049.0, "2022": 17365.0, "2023": 21288.0, "2024": 28414.0, "2025": 30019.0}, {"Line Item": "Total Current Liabilities", "2016": 59717.0, "2017": 67734.0, "2018": 75676.0, "2019": 62304.0, "2020": 72250.0, "2021": 76283.0, "2022": 95082.0, "2023": 104149.0, "2024": 125286.0, "2025": 141218.0}, {"Line Item": "NON-CURRENT LIABILITIES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Long-Term Debt", "2016": 52714.0, "2017": 76083.0, "2018": 72242.0, "2019": 66662.0, "2020": 59990.0, "2021": 48088.0, "2022": 47032.0, "2023": 41990.0, "2024": 42688.0, "2025": 40152.0}, {"Line Item": "Deferred Revenue (Non-Current)", "2016": 2788.0, "2017": 2752.0, "2018": 2813.0, "2019": 4530.0, "2020": 3180.0, "2021": 2810.0, "2022": 2870.0, "2023": 2912.0, "2024": 2602.0, "2025": 2710.0}, {"Line Item": "Other Non-Current Liabilities", "2016": 6282.0, "2017": 8568.0, "2018": 25400.0, "2019": 50730.0, "2020": 47587.0, "2021": 64610.0, "2022": 53314.0, "2023": 56652.0, "2024": 73110.0, "2025": 91444.0}, {"Line Item": "Total Liabilities", "2016": 121501.0, "2017": 155137.0, "2018": 176130.0, "2019": 184226.0, "2020": 183007.0, "2021": 191791.0, "2022": 198298.0, "2023": 205753.0, "2024": 243686.0, "2025": 275524.0}, {"Line Item": "STOCKHOLDERS' EQUITY", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Common Stock", "2016": 68178.0, "2017": 69315.0, "2018": 71223.0, "2019": 78520.0, "2020": 80552.0, "2021": 83111.0, "2022": 86939.0, "2023": 93718.0, "2024": 100923.0, "2025": 108520.0}, {"Line Item": "Additional Paid-in Capital", "2016": 0.0, "2017": 0.0, "2018": 0.0, "2019": 0.0, "2020": 0.0, "2021": 0.0, "2022": 0.0, "2023": 0.0, "2024": 0.0, "2025": 0.0}, {"Line Item": "Retained Earnings / (Accumulated Deficit)", "2016": 2282.0, "2017": 17769.0, "2018": 13682.0, "2019": 24150.0, "2020": 34566.0, "2021": 57055.0, "2022": 84281.0, "2023": 118848.0, "2024": 173144.0, "2025": 240650.0}, {"Line Item": "Accumulated Other Comprehensive Income / (Loss)", "2016": 1533.0, "2017": -1198.0, "2018": -2187.0, "2019": -340.0, "2020": 3186.0, "2021": 1822.0, "2022": -4678.0, "2023": -6343.0, "2024": -5590.0, "2025": -5691.0}, {"Line Item": "Total Stockholders' Equity", "2016": 71997.0, "2017": 85949.0, "2018": 82718.0, "2019": 102330.0, "2020": 118304.0, "2021": 141988.0, "2022": 166542.0, "2023": 206223.0, "2024": 268477.0, "2025": 343479.0}, {"Line Item": "Total Liabilities and Stockholders' Equity", "2016": 193694.0, "2017": 241086.0, "2018": 258848.0, "2019": 286556.0, "2020": 301311.0, "2021": 333779.0, "2022": 364840.0, "2023": 411976.0, "2024": 512163.0, "2025": 619003.0}], "Cash Flows": [{"Line Item": "OPERATING ACTIVITIES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Net Income", "2016": 16798.0, "2017": 21204.0, "2018": 16571.0, "2019": 39240.0, "2020": 44281.0, "2021": 61271.0, "2022": 72738.0, "2023": 72361.0, "2024": 88136.0, "2025": 101832.0}, {"Line Item": "Depreciation and Amortization", "2016": 6622.0, "2017": 8778.0, "2018": 10261.0, "2019": 11600.0, "2020": 12796.0, "2021": 11686.0, "2022": 14460.0, "2023": 13861.0, "2024": 15000.0, "2025": 17200.0}, {"Line Item": "Share-Based Compensation", "2016": 2668.0, "2017": 3266.0, "2018": 3940.0, "2019": 4652.0, "2020": 5289.0, "2021": 6118.0, "2022": 7502.0, "2023": 9611.0, "2024": 10735.0, "2025": 12500.0}, {"Line Item": "Deferred Income Taxes", "2016": -1532.0, "2017": -180.0, "2018": 5518.0, "2019": -2521.0, "2020": -11.0, "2021": -150.0, "2022": -5702.0, "2023": -6059.0, "2024": -3899.0, "2025": -2100.0}, {"Line Item": "Change in Accounts Receivable", "2016": 530.0, "2017": -1216.0, "2018": -3862.0, "2019": -2812.0, "2020": -2577.0, "2021": -6481.0, "2022": -6834.0, "2023": -4068.0, "2024": -7825.0, "2025": -8200.0}, {"Line Item": "Change in Inventories", "2016": 600.0, "2017": -50.0, "2018": -465.0, "2019": 597.0, "2020": 168.0, "2021": -737.0, "2022": -1123.0, "2023": 1242.0, "2024": -533.0, "2025": 1562.0}, {"Line Item": "Change in Accounts Payable", "2016": 88.0, "2017": 390.0, "2018": 2928.0, "2019": 232.0, "2020": 2330.0, "2021": 2798.0, "2022": 2943.0, "2023": -2725.0, "2024": 3326.0, "2025": 4200.0}, {"Line Item": "Net Cash Provided by Operating Activities", "2016": 33325.0, "2017": 39507.0, "2018": 43884.0, "2019": 52185.0, "2020": 60675.0, "2021": 76740.0, "2022": 89035.0, "2023": 87582.0, "2024": 118548.0, "2025": 136162.0}, {"Line Item": "INVESTING ACTIVITIES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Capital Expenditures (Property, Plant and Equipment)", "2016": -8322.0, "2017": -11632.0, "2018": -11632.0, "2019": -13925.0, "2020": -15441.0, "2021": -20622.0, "2022": -23886.0, "2023": -28107.0, "2024": -44477.0, "2025": -64551.0}, {"Line Item": "Purchases of Marketable Securities", "2016": -104893.0, "2017": -137380.0, "2018": -176905.0, "2019": -57697.0, "2020": -77190.0, "2021": -62924.0, "2022": -26456.0, "2023": -37651.0, "2024": -17732.0, "2025": -22100.0}, {"Line Item": "Proceeds from Sales/Maturities of Marketable Securities", "2016": 106359.0, "2017": 125238.0, "2018": 166090.0, "2019": 68060.0, "2020": 84177.0, "2021": 65800.0, "2022": 44840.0, "2023": 47763.0, "2024": 28148.0, "2025": 31200.0}, {"Line Item": "Payments for Business Acquisitions, Net", "2016": -1395.0, "2017": -25944.0, "2018": -2888.0, "2019": -2388.0, "2020": -2521.0, "2021": -8909.0, "2022": -22038.0, "2023": -1670.0, "2024": -68840.0, "2025": -1500.0}, {"Line Item": "Net Cash Used in Investing Activities", "2016": -8251.0, "2017": -49768.0, "2018": -25375.0, "2019": -5860.0, "2020": -10895.0, "2021": -26685.0, "2022": -27490.0, "2023": -19665.0, "2024": -102801.0, "2025": -56951.0}, {"Line Item": "FINANCING ACTIVITIES", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Repurchases of Common Stock", "2016": -15969.0, "2017": -11788.0, "2018": -10721.0, "2019": -19543.0, "2020": -19645.0, "2021": -27385.0, "2022": -32696.0, "2023": -22245.0, "2024": -17254.0, "2025": -18420.0}, {"Line Item": "Dividends Paid", "2016": -11006.0, "2017": -11845.0, "2018": -12699.0, "2019": -13811.0, "2020": -15137.0, "2021": -16521.0, "2022": -18135.0, "2023": -19800.0, "2024": -21771.0, "2025": -24082.0}, {"Line Item": "Proceeds from Issuance of Common Stock", "2016": 668.0, "2017": 772.0, "2018": 1002.0, "2019": 1142.0, "2020": 1343.0, "2021": 1693.0, "2022": 1841.0, "2023": 1866.0, "2024": 2145.0, "2025": 2450.0}, {"Line Item": "Proceeds from Issuance of Long-Term Debt", "2016": 13884.0, "2017": 44344.0, "2018": 7183.0, "2019": 0.0, "2020": 0.0, "2021": 0.0, "2022": 0.0, "2023": 0.0, "2024": 24395.0, "2025": 0.0}, {"Line Item": "Repayments of Long-Term Debt", "2016": -3888.0, "2017": -7922.0, "2018": -4005.0, "2019": -3553.0, "2020": -5055.0, "2021": -3750.0, "2022": -9023.0, "2023": -2750.0, "2024": -29070.0, "2025": -2850.0}, {"Line Item": "Net Cash Used in Financing Activities", "2016": -16341.0, "2017": 13611.0, "2018": -19216.0, "2019": -35772.0, "2020": -38446.0, "2021": -45963.0, "2022": -58013.0, "2023": -42929.0, "2024": -41555.0, "2025": -42902.0}, {"Line Item": "NET CHANGE IN CASH", "2016": null, "2017": null, "2018": null, "2019": null, "2020": null, "2021": null, "2022": null, "2023": null, "2024": null, "2025": null}, {"Line Item": "Net Increase / (Decrease) in Cash and Cash Equivalents", "2016": 8733.0, "2017": 3350.0, "2018": -707.0, "2019": 10553.0, "2020": 11334.0, "2021": 4092.0, "2022": 3532.0, "2023": 24988.0, "2024": -25808.0, "2025": 36309.0}, {"Line Item": "Cash and Cash Equivalents at Beginning of Period", "2016": 10978.0, "2017": 19711.0, "2018": 23061.0, "2019": 22354.0, "2020": 32907.0, "2021": 44241.0, "2022": 48333.0, "2023": 51865.0, "2024": 76853.0, "2025": 51045.0}, {"Line Item": "Cash and Cash Equivalents at End of Period", "2016": 19711.0, "2017": 23061.0, "2018": 22354.0, "2019": 32907.0, "2020": 44241.0, "2021": 48333.0, "2022": 51865.0, "2023": 76853.0, "2024": 51045.0, "2025": 87354.0}], "Financial Ratios": [{"Ratio / Metric": "Current Ratio", "Category": "Liquidity", "Formula / Definition": "Total Current Assets / Total Current Liabilities", "Format": "multiplier", "2016": 2.338697523318318, "2017": 2.359981693093572, "2018": 2.242124319467202, "2019": 2.817668207498716, "2020": 2.517854671280277, "2021": 2.418087909494907, "2022": 1.811899202793378, "2023": 1.76916725076573, "2024": 1.274954903181521, "2025": 1.353446444504242}, {"Ratio / Metric": "Quick Ratio (Acid-Test)", "Category": "Liquidity", "Formula / Definition": "(Cash + Mkt Securities + Accounts Rec) / Current Liab", "Format": "multiplier", "2016": 2.202337692784299, "2017": 2.255484690111318, "2018": 2.117566996141445, "2019": 2.621709681561376, "2020": 2.332705882352941, "2021": 2.207267674318, "2022": 1.567173597526346, "2023": 1.535780468367435, "2024": 1.06485960123238, "2025": 1.164653231174496}, {"Ratio / Metric": "Cash Ratio", "Category": "Liquidity", "Formula / Definition": "(Cash & Cash Equiv + Mkt Securities) / Current Liab", "Format": "multiplier", "2016": 1.896277441934457, "2017": 1.963282841704314, "2018": 1.767640995824304, "2019": 2.147839625064201, "2020": 1.889647058823529, "2021": 1.708558918763027, "2022": 1.101670137355125, "2023": 1.068296383066568, "2024": 0.6029723991507431, "2025": 0.6696384313614412}, {"Ratio / Metric": "Operating Cash Flow Ratio", "Category": "Liquidity", "Formula / Definition": "Cash Flow from Operations / Current Liabilities", "Format": "multiplier", "2016": 0.5580487968250247, "2017": 0.5832668969793604, "2018": 0.5798932290290184, "2019": 0.8375866718027735, "2020": 0.8397923875432526, "2021": 1.005990849861699, "2022": 0.9364022633095643, "2023": 0.84092982169776, "2024": 0.9462190508117427, "2025": 0.964197198657395}, {"Ratio / Metric": "Debt-to-Equity Ratio", "Category": "Solvency", "Formula / Definition": "Total Debt (Short + Long-Term) / Stockholders' Equity", "Format": "multiplier", "2016": 0.9088712029667902, "2017": 1.033729304587604, "2018": 0.9698735462656254, "2019": 0.7579106811296785, "2020": 0.6229628753043008, "2021": 0.3953643969912951, "2022": 0.3866712300800999, "2023": 0.3068425927272904, "2024": 0.2648346040815414, "2025": 0.2042948768338093}, {"Ratio / Metric": "Debt-to-Assets Ratio", "Category": "Solvency", "Formula / Definition": "Total Debt / Total Assets", "Format": "multiplier", "2016": 0.3378318378473262, "2017": 0.3685323909310371, "2018": 0.3099347879836816, "2019": 0.2706521587403509, "2020": 0.2445944555625251, "2021": 0.1681861351373214, "2022": 0.1765075101414319, "2023": 0.1535963259995728, "2024": 0.1388268969058679, "2025": 0.1133613245816256}, {"Ratio / Metric": "Financial Leverage (Equity Multiplier)", "Category": "Solvency", "Formula / Definition": "Total Assets / Total Stockholders' Equity", "Format": "multiplier", "2016": 2.690306540550301, "2017": 2.80498900510768, "2018": 3.129282622887401, "2019": 2.800312713769178, "2020": 2.54692149039762, "2021": 2.350754993379722, "2022": 2.190678627613455, "2023": 1.997720913768105, "2024": 1.907660618972947, "2025": 1.802156754852553}, {"Ratio / Metric": "Interest Coverage Ratio", "Category": "Solvency", "Formula / Definition": "Operating Income (EBIT) / Interest Expense", "Format": "multiplier", "2016": 16.23652453740949, "2017": 14.24760689215061, "2018": 15.69292748433304, "2019": 15.49747474747475, "2020": 20.43959861057507, "2021": 29.80221653878943, "2022": 40.41832283082889, "2023": 44.98119918699187, "2024": 37.28551959114139, "2025": 45.90285714285714}, {"Ratio / Metric": "Asset Turnover Ratio", "Category": "Efficiency", "Formula / Definition": "Total Revenues / Total Assets", "Format": "multiplier", "2016": 0.440488605738949, "2017": 0.3731033738997702, "2018": 0.4263505995796761, "2019": 0.439156744231494, "2020": 0.4746424790332912, "2021": 0.5035906992351227, "2022": 0.5434437013485364, "2023": 0.5143867603938094, "2024": 0.4786015389631816, "2025": 0.4551254194244616}, {"Ratio / Metric": "Receivables Turnover Ratio", "Category": "Efficiency", "Formula / Definition": "Total Revenues / Accounts Receivable, Net", "Format": "multiplier", "2016": 4.668162171034633, "2017": 4.544765561843169, "2018": 4.167516332464786, "2019": 4.262396694214876, "2020": 4.467682983974258, "2021": 4.418368688063507, "2022": 4.479564402069542, "2023": 4.352509858692081, "2024": 4.235881661712864, "2025": 4.030097990129462}, {"Ratio / Metric": "Days Sales Outstanding (DSO)", "Category": "Efficiency", "Formula / Definition": "(Accounts Receivable * 365) / Total Revenues", "Format": "days", "2016": 78.18922878574779, "2017": 80.31217342968316, "2018": 87.58214026821311, "2019": 85.6325739214736, "2020": 81.69782889906654, "2021": 82.6096746942078, "2022": 81.48113683361073, "2023": 83.85966071302173, "2024": 86.16860175749218, "2025": 90.56851741420681}, {"Ratio / Metric": "Inventory Turnover Ratio", "Category": "Efficiency", "Formula / Definition": "Cost of Goods Sold / Inventories", "Format": "multiplier", "2016": 14.56241670368725, "2017": 15.70884915176524, "2018": 14.40758827948911, "2019": 20.79980610761028, "2020": 24.3155672823219, "2021": 19.81487101669196, "2022": 16.74238375200428, "2023": 26.3452, "2024": 24.43587207385427, "2025": 93.636460554371}, {"Ratio / Metric": "Days Inventory Outstanding (DIO)", "Category": "Efficiency", "Formula / Definition": "(Inventories * 365) / Cost of Goods Sold", "Format": "days", "2016": 25.06452104942038, "2017": 23.23531128688596, "2018": 25.3338721873126, "2019": 17.54824050337917, "2020": 15.01095967706932, "2021": 18.42050850053607, "2022": 21.80095770151636, "2023": 13.85451619270304, "2024": 14.93705642658607, "2025": 3.898054217759106}, {"Ratio / Metric": "Gross Profit Margin", "Category": "Profitability", "Formula / Definition": "Gross Profit / Total Revenues", "Format": "percent", "2016": 0.6157993436474449, "2017": 0.6191106170094497, "2018": 0.652473722363175, "2019": 0.6590195720063889, "2020": 0.6778100199279796, "2021": 0.689258007710247, "2022": 0.684016744842891, "2023": 0.6892008588349102, "2024": 0.6976444382797138, "2025": 0.6882374238616519}, {"Ratio / Metric": "Operating Profit Margin", "Category": "Profitability", "Formula / Definition": "Operating Income (EBIT) / Total Revenues", "Format": "percent", "2016": 0.236544772620722, "2017": 0.2482045580878266, "2018": 0.3176694454512505, "2019": 0.3413698020549415, "2020": 0.3703038142852149, "2021": 0.415948788729713, "2022": 0.4205527815604983, "2023": 0.417728806361041, "2024": 0.4464429957327372, "2025": 0.4562195624085985}, {"Ratio / Metric": "Net Profit Margin", "Category": "Profitability", "Formula / Definition": "Net Income / Total Revenues", "Format": "percent", "2016": 0.196882325363338, "2017": 0.2357309616453585, "2018": 0.1501540413193186, "2019": 0.3118171054409065, "2020": 0.3096248645247002, "2021": 0.3645173956498977, "2022": 0.3668633681343622, "2023": 0.3414623787839464, "2024": 0.3595597294408499, "2025": 0.3614601524896707}, {"Ratio / Metric": "Return on Assets (ROA)", "Category": "Profitability", "Formula / Definition": "Net Income / Total Assets", "Format": "percent", "2016": 0.0867244209939389, "2017": 0.0879520171225206, "2018": 0.06401826554580294, "2019": 0.136936584821117, "2020": 0.1469611132683507, "2021": 0.1835675701586978, "2022": 0.1993695866681285, "2023": 0.175643726819038, "2024": 0.172085839859576, "2025": 0.1645097035070912}, {"Ratio / Metric": "Return on Equity (ROE)", "Category": "Profitability", "Formula / Definition": "Net Income / Total Stockholders' Equity", "Format": "percent", "2016": 0.2333152770254316, "2017": 0.2467044410057127, "2018": 0.2003312459198723, "2019": 0.3834652594547054, "2020": 0.374298417635921, "2021": 0.4315223821731414, "2022": 0.4367546925099975, "2023": 0.3508871464385641, "2024": 0.3282813797829982, "2025": 0.2964722734140952}], "Sentiment Analysis": [{"Fiscal Year": 2016, "Total Words": 6850, "Positive Count": 162, "Negative Count": 310, "Net Score": -148, "P/N Ratio": 0.5226, "Net Sentiment %": -0.021606, "Uncertainty Count": 105, "Litigious Count": 36, "Strong Modal": 15, "Weak Modal": 12, "Tone Classification": "Cautious / Negative"}, {"Fiscal Year": 2017, "Total Words": 6426, "Positive Count": 152, "Negative Count": 289, "Net Score": -137, "P/N Ratio": 0.526, "Net Sentiment %": -0.02132, "Uncertainty Count": 97, "Litigious Count": 32, "Strong Modal": 14, "Weak Modal": 10, "Tone Classification": "Cautious / Negative"}, {"Fiscal Year": 2018, "Total Words": 5965, "Positive Count": 156, "Negative Count": 210, "Net Score": -54, "P/N Ratio": 0.7429, "Net Sentiment %": -0.009053, "Uncertainty Count": 79, "Litigious Count": 39, "Strong Modal": 11, "Weak Modal": 10, "Tone Classification": "Cautious / Negative"}, {"Fiscal Year": 2019, "Total Words": 5674, "Positive Count": 170, "Negative Count": 159, "Net Score": 11, "P/N Ratio": 1.0692, "Net Sentiment %": 0.001939, "Uncertainty Count": 86, "Litigious Count": 38, "Strong Modal": 9, "Weak Modal": 10, "Tone Classification": "Positive"}, {"Fiscal Year": 2020, "Total Words": 5962, "Positive Count": 185, "Negative Count": 148, "Net Score": 37, "P/N Ratio": 1.25, "Net Sentiment %": 0.006206, "Uncertainty Count": 97, "Litigious Count": 36, "Strong Modal": 13, "Weak Modal": 12, "Tone Classification": "Positive"}, {"Fiscal Year": 2021, "Total Words": 5076, "Positive Count": 157, "Negative Count": 124, "Net Score": 33, "P/N Ratio": 1.2661, "Net Sentiment %": 0.006501, "Uncertainty Count": 72, "Litigious Count": 42, "Strong Modal": 10, "Weak Modal": 11, "Tone Classification": "Positive"}, {"Fiscal Year": 2022, "Total Words": 5008, "Positive Count": 161, "Negative Count": 104, "Net Score": 57, "P/N Ratio": 1.5481, "Net Sentiment %": 0.011382, "Uncertainty Count": 79, "Litigious Count": 40, "Strong Modal": 13, "Weak Modal": 10, "Tone Classification": "Positive"}, {"Fiscal Year": 2023, "Total Words": 5073, "Positive Count": 148, "Negative Count": 159, "Net Score": -11, "P/N Ratio": 0.9308, "Net Sentiment %": -0.002168, "Uncertainty Count": 77, "Litigious Count": 29, "Strong Modal": 11, "Weak Modal": 11, "Tone Classification": "Cautious / Negative"}, {"Fiscal Year": 2024, "Total Words": 4667, "Positive Count": 134, "Negative Count": 126, "Net Score": 8, "P/N Ratio": 1.0635, "Net Sentiment %": 0.001714, "Uncertainty Count": 70, "Litigious Count": 34, "Strong Modal": 12, "Weak Modal": 10, "Tone Classification": "Positive"}, {"Fiscal Year": 2025, "Total Words": 4300, "Positive Count": 133, "Negative Count": 116, "Net Score": 17, "P/N Ratio": 1.1466, "Net Sentiment %": 0.003953, "Uncertainty Count": 60, "Litigious Count": 31, "Strong Modal": 12, "Weak Modal": 11, "Tone Classification": "Positive"}], "Stock Price": [{"Fiscal Year": 2016, "Balance Sheet Date": "2016-06-30", "Actual Trading Date": "2016-06-30", "Closing Price ($)": 51.16999816894531, "Adjusted Close ($)": 45.15585327148438, "Trading Volume": 28527800, "YoY Change ($)": null, "YoY % Return": null}, {"Fiscal Year": 2017, "Balance Sheet Date": "2017-06-30", "Actual Trading Date": "2017-06-30", "Closing Price ($)": 68.93000030517578, "Adjusted Close ($)": 62.35000610351562, "Trading Volume": 24161100, "YoY Change ($)": 17.76, "YoY % Return": 0.3471}, {"Fiscal Year": 2018, "Balance Sheet Date": "2018-06-30", "Actual Trading Date": "2018-06-29", "Closing Price ($)": 98.61000061035156, "Adjusted Close ($)": 90.93816375732422, "Trading Volume": 28053200, "YoY Change ($)": 29.68, "YoY % Return": 0.4306}, {"Fiscal Year": 2019, "Balance Sheet Date": "2019-06-30", "Actual Trading Date": "2019-06-28", "Closing Price ($)": 133.9600067138672, "Adjusted Close ($)": 125.5439682006836, "Trading Volume": 30043000, "YoY Change ($)": 35.35, "YoY % Return": 0.3585}, {"Fiscal Year": 2020, "Balance Sheet Date": "2020-06-30", "Actual Trading Date": "2020-06-30", "Closing Price ($)": 203.5099945068359, "Adjusted Close ($)": 193.0714416503906, "Trading Volume": 34310300, "YoY Change ($)": 69.55, "YoY % Return": 0.5192}, {"Fiscal Year": 2021, "Balance Sheet Date": "2021-06-30", "Actual Trading Date": "2021-06-30", "Closing Price ($)": 270.8999938964844, "Adjusted Close ($)": 259.4933776855469, "Trading Volume": 21656500, "YoY Change ($)": 67.39, "YoY % Return": 0.3311}, {"Fiscal Year": 2022, "Balance Sheet Date": "2022-06-30", "Actual Trading Date": "2022-06-30", "Closing Price ($)": 256.8299865722656, "Adjusted Close ($)": 248.0246276855469, "Trading Volume": 31730900, "YoY Change ($)": -14.07, "YoY % Return": -0.0519}, {"Fiscal Year": 2023, "Balance Sheet Date": "2023-06-30", "Actual Trading Date": "2023-06-30", "Closing Price ($)": 340.5400085449219, "Adjusted Close ($)": 332.0434875488281, "Trading Volume": 26832800, "YoY Change ($)": 83.71, "YoY % Return": 0.3259}, {"Fiscal Year": 2024, "Balance Sheet Date": "2024-06-30", "Actual Trading Date": "2024-06-28", "Closing Price ($)": 446.9500122070312, "Adjusted Close ($)": 439.2077026367188, "Trading Volume": 28362300, "YoY Change ($)": 106.41, "YoY % Return": 0.3125}, {"Fiscal Year": 2025, "Balance Sheet Date": "2025-06-30", "Actual Trading Date": "2025-06-30", "Closing Price ($)": 497.4100036621094, "Adjusted Close ($)": 492.5411376953125, "Trading Volume": 28369000, "YoY Change ($)": 50.46, "YoY % Return": 0.1129}]}}};
+    </script>
+
+    <!-- Client-Side Application Logic -->
+    <script>
+        let currentTicker = 'AAPL';
+        let currentTab = 'executive';
+        let currentStatement = 'Income Statement';
+        let currentRatioCategory = 'All Categories';
+        let searchQuery = '';
+
+        let dualAxisChartInstance = null;
+        let sentimentChartInstance = null;
+        let stockChartInstance = null;
+
+        const HEADER_LABELS = [
+            'CURRENT ASSETS', 'NON-CURRENT ASSETS', 'CURRENT LIABILITIES',
+            'NON-CURRENT LIABILITIES', "STOCKHOLDERS' EQUITY", 'REVENUES',
+            'OPERATING EXPENSES', 'OTHER INCOME / (EXPENSE)', 'PER SHARE DATA',
+            'OPERATING ACTIVITIES', 'INVESTING ACTIVITIES', 'FINANCING ACTIVITIES',
+            'NET CHANGE IN CASH'
+        ];
+
+        const TOTAL_LABELS = [
+            'total net sales / revenue', 'gross profit', 'operating income (ebit)',
+            'net income', 'total current assets', 'total assets', 'total current liabilities',
+            'total liabilities', "total stockholders' equity",
+            'total liabilities and stockholders\' equity',
+            'net cash provided by operating activities',
+            'net cash used in investing activities',
+            'net cash used in financing activities',
+            'net increase / (decrease) in cash and cash equivalents',
+            'cash and cash equivalents at end of period'
+        ];
+
+        function switchTicker(ticker) {
+            currentTicker = ticker;
+            document.getElementById('btn-aapl').className = ticker === 'AAPL'
+                ? 'px-4 py-1.5 text-sm font-bold rounded-md bg-white text-blue-900 shadow-sm'
+                : 'px-4 py-1.5 text-sm font-semibold rounded-md text-slate-600 hover:text-slate-900';
+            document.getElementById('btn-msft').className = ticker === 'MSFT'
+                ? 'px-4 py-1.5 text-sm font-bold rounded-md bg-white text-blue-900 shadow-sm'
+                : 'px-4 py-1.5 text-sm font-semibold rounded-md text-slate-600 hover:text-slate-900';
+
+            renderApp();
+            if (searchQuery.trim()) {
+                handleSearch(searchQuery);
+            }
+        }
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            const tabs = ['executive', 'ratios', 'statements', 'sentiment', 'stock'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const content = document.getElementById(`content-${t}`);
+                if (t === tabId) {
+                    btn.classList.add('active');
+                    content.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('active');
+                    content.classList.add('hidden');
+                }
+            });
+
+            // Re-render chart on tab switch
+            if (tabId === 'executive') renderDualAxisChart();
+            if (tabId === 'sentiment') renderSentimentChart();
+            if (tabId === 'stock') renderStockChart();
+        }
+
+        function switchStatement(stmtName) {
+            currentStatement = stmtName;
+            document.getElementById('subtab-income').className = stmtName === 'Income Statement' ? 'subtab-btn active' : 'subtab-btn';
+            document.getElementById('subtab-balance').className = stmtName === 'Balance Sheet' ? 'subtab-btn active' : 'subtab-btn';
+            document.getElementById('subtab-cash').className = stmtName === 'Cash Flows' ? 'subtab-btn active' : 'subtab-btn';
+            renderStatementsTab();
+        }
+
+        function filterRatioCategory(catName) {
+            currentRatioCategory = catName;
+            const pills = {
+                'All Categories': 'pill-all',
+                'Liquidity': 'pill-liquidity',
+                'Solvency': 'pill-solvency',
+                'Efficiency': 'pill-efficiency',
+                'Profitability': 'pill-profitability'
+            };
+            Object.entries(pills).forEach(([k, id]) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (k === catName) el.classList.add('active');
+                    else el.classList.remove('active');
+                }
+            });
+            renderRatiosTable();
+        }
+
+        function clearSearch() {
+            document.getElementById('global-search').value = '';
+            document.getElementById('clear-search-btn').classList.add('hidden');
+            document.getElementById('search-results-section').classList.add('hidden');
+            searchQuery = '';
+        }
+
+        function handleSearch(q) {
+            searchQuery = q.trim();
+            const btn = document.getElementById('clear-search-btn');
+            const sec = document.getElementById('search-results-section');
+            if (!searchQuery) {
+                btn.classList.add('hidden');
+                sec.classList.add('hidden');
+                return;
+            }
+            btn.classList.remove('hidden');
+            sec.classList.remove('hidden');
+
+            const bundle = window.FINANCIAL_DATA[currentTicker].sheets;
+            const matches = [];
+            const queryLower = searchQuery.toLowerCase();
+
+            Object.entries(bundle).forEach(([sheetName, rows]) => {
+                rows.forEach(r => {
+                    const label = (r['Line Item'] || r['Ratio / Metric'] || r['Metric / Line Item'] || '').toString();
+                    if (label.toLowerCase().includes(queryLower)) {
+                        matches.push({
+                            sheet: sheetName,
+                            label: label.trim(),
+                            data: r
+                        });
+                    }
+                });
+            });
+
+            document.getElementById('search-results-title').innerHTML = `🔍 Filtered Results for: <span class="bg-yellow-200 text-yellow-900 px-2 py-0.5 rounded font-mono">"${searchQuery}"</span>`;
+            document.getElementById('search-results-count').textContent = `Found ${matches.length} matching line item(s) across all sheets`;
+
+            const tbody = document.getElementById('search-results-tbody');
+            tbody.innerHTML = '';
+            if (matches.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12" class="text-center py-6 text-slate-500">No matching line items found for "${searchQuery}". Try searching for 'Revenue', 'Goodwill', 'Debt', 'Margin', or 'Cash'.</td></tr>`;
+                return;
+            }
+
+            matches.forEach(m => {
+                let tr = document.createElement('tr');
+                let badgeCls = 'bg-slate-100 text-slate-700 border-slate-300';
+                if (m.sheet.includes('Income')) badgeCls = 'bg-blue-50 text-blue-700 border-blue-200';
+                if (m.sheet.includes('Balance')) badgeCls = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                if (m.sheet.includes('Cash')) badgeCls = 'bg-purple-50 text-purple-700 border-purple-200';
+                if (m.sheet.includes('Ratios')) badgeCls = 'bg-amber-50 text-amber-700 border-amber-200';
+
+                let html = `<td><span class="text-xs px-2 py-1 rounded border font-semibold ${badgeCls}">${m.sheet}</span></td>`;
+                html += `<td class="font-bold text-slate-800">${m.label}</td>`;
+                for (let yr = 2016; yr <= 2025; yr++) {
+                    let val = m.data[yr.toString()];
+                    html += `<td>${formatNumberCell(val, m.label, m.data['Format'])}</td>`;
+                }
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function formatNumberCell(val, label, formatType) {
+            if (val === null || val === undefined || isNaN(val)) return '—';
+            let num = parseFloat(val);
+            if (isNaN(num)) return '—';
+
+            if (formatType === 'multiplier') return num.toFixed(2) + 'x';
+            if (formatType === 'percentage') return (num * 1.0).toFixed(1) + '%';
+            if (formatType === 'days') return num.toFixed(1) + ' d';
+
+            if (label && label.toLowerCase().includes('per share')) {
+                return '$' + num.toFixed(2);
+            }
+
+            // Raw values >= 1M in statements scaled to millions
+            if (Math.abs(num) >= 1000000) {
+                num = num / 1000000;
+            }
+            return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function renderApp() {
+            const companyData = window.FINANCIAL_DATA[currentTicker];
+            const meta = companyData.metadata;
+
+            // Render Banner
+            document.getElementById('company-name-banner').innerHTML = `${meta.icon} ${meta.name} (${currentTicker})`;
+            document.getElementById('company-subtitle-banner').innerHTML =
+                `${meta.sector} &bull; ${meta.industry} &bull; <b class="text-white">${meta.exchange}</b> &bull; Fiscal Year End: <b>${meta.fy_end}</b>`;
+
+            // Render KPI Cards
+            renderKpis(companyData);
+
+            // Render Active Tab Content
+            if (currentTab === 'executive') {
+                renderExecutiveTab();
+            } else if (currentTab === 'ratios') {
+                renderRatiosTable();
+            } else if (currentTab === 'statements') {
+                renderStatementsTab();
+            } else if (currentTab === 'sentiment') {
+                renderSentimentTab();
+            } else if (currentTab === 'stock') {
+                renderStockTab();
+            }
+        }
+
+        function renderKpis(companyData) {
+            const summary = companyData.sheets['Executive Summary'];
+            const first = summary[0];
+            const latest = summary[summary.length - 1];
+
+            const pFirst = parseFloat(first['Stock Price ($)']);
+            const pLatest = parseFloat(latest['Stock Price ($)']);
+            const totReturn = ((pLatest - pFirst) / pFirst) * 100;
+            const yoyPriceRet = parseFloat(latest['YoY Price Return (%)'] || 0);
+
+            const rev = parseFloat(latest['Revenue ($B)']);
+            const ni = parseFloat(latest['Net Income ($B)']);
+            const pn = parseFloat(latest['MD&A Sentiment P/N']);
+            const tone = latest['Sentiment Tone'] || (pn >= 1.0 ? 'Positive' : 'Cautious / Negative');
+
+            const deltaYoyCls = yoyPriceRet >= 0 ? 'delta-pos' : 'delta-neg';
+            const deltaTotCls = totReturn >= 0 ? 'delta-pos' : 'delta-neg';
+            const toneCls = tone.toLowerCase().includes('positive') ? 'delta-pos' : 'delta-neg';
+
+            const container = document.getElementById('kpi-cards-grid');
+            container.innerHTML = `
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Closing Stock Price</div>
+                    <div class="text-2xl font-extrabold text-slate-900 mt-1">$${pLatest.toFixed(2)}</div>
+                    <div class="mt-2 inline-flex items-center text-xs px-2 py-0.5 rounded font-bold ${deltaYoyCls}">
+                        ${yoyPriceRet >= 0 ? '+' : ''}${yoyPriceRet.toFixed(2)}% YoY
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">10-Yr Total Return</div>
+                    <div class="text-2xl font-extrabold text-slate-900 mt-1">+${totReturn.toFixed(1)}%</div>
+                    <div class="mt-2 inline-flex items-center text-xs px-2 py-0.5 rounded font-bold ${deltaTotCls}">
+                        FY2016 → FY2025
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">FY2025 Revenue</div>
+                    <div class="text-2xl font-extrabold text-blue-900 mt-1">$${rev.toFixed(2)}B</div>
+                    <div class="mt-2 text-xs text-slate-500 font-medium">Audited SEC 10-K</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">FY2025 Net Income</div>
+                    <div class="text-2xl font-extrabold text-emerald-700 mt-1">$${ni.toFixed(2)}B</div>
+                    <div class="mt-2 text-xs text-slate-500 font-medium">Net Profit Margin: ${((ni / rev) * 100).toFixed(1)}%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">MD&A Sentiment P/N</div>
+                    <div class="text-2xl font-extrabold text-slate-900 mt-1">${pn.toFixed(4)}</div>
+                    <div class="mt-2 inline-flex items-center text-xs px-2 py-0.5 rounded font-bold ${toneCls}">
+                        ${tone}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderExecutiveTab() {
+            document.getElementById('chart1-title').textContent = `${currentTicker} 10-Year Stock Price vs. MD&A Sentiment P/N Ratio`;
+            renderDualAxisChart();
+
+            // Correlation card
+            const corr = window.FINANCIAL_DATA[currentTicker].correlation;
+            const r = corr.r;
+            const r2 = corr.r2;
+            let interpretation = r > 0.5 ? 'Strong Positive Co-Movement' : (r > 0 ? 'Moderate Positive Association' : 'Inverse Relationship');
+            let colorCls = r > 0.3 ? 'text-blue-900' : 'text-slate-700';
+
+            document.getElementById('correlation-card').innerHTML = `
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-blue-700">Loughran-McDonald NLP Statistical Correlation</div>
+                        <div class="text-base font-bold ${colorCls} mt-0.5">Pearson Correlation Coefficient: r = ${r.toFixed(4)} (R² = ${r2.toFixed(4)}) &bull; ${interpretation}</div>
+                        <p class="text-xs text-slate-600 mt-1">Measures the empirical association between Item 7 (MD&A) qualitative sentiment tone and annual balance sheet date stock prices over the 10-year fiscal period.</p>
+                    </div>
+                    <div class="bg-white border border-blue-200 rounded-lg px-4 py-2 text-center shadow-sm">
+                        <span class="text-xs text-slate-500 uppercase font-semibold">Correlation Strength</span>
+                        <div class="text-lg font-black text-blue-900">${(r * 100).toFixed(1)}%</div>
+                    </div>
+                </div>
+            `;
+
+            // Summary table
+            const summary = window.FINANCIAL_DATA[currentTicker].sheets['Executive Summary'];
+            const tbody = document.getElementById('executive-tbody');
+            tbody.innerHTML = '';
+            summary.forEach(row => {
+                const tr = document.createElement('tr');
+                const p = parseFloat(row['Stock Price ($)']);
+                const yoy = row['YoY Price Return (%)'] !== null ? parseFloat(row['YoY Price Return (%)']) : null;
+                const pn = parseFloat(row['MD&A Sentiment P/N']);
+                const tone = row['Sentiment Tone'] || 'Neutral';
+                const toneCls = tone.toLowerCase().includes('positive') ? 'text-emerald-700 font-semibold' : 'text-rose-700 font-semibold';
+
+                tr.innerHTML = `
+                    <td class="font-bold text-slate-900">${row['Fiscal Year']}</td>
+                    <td class="font-bold text-slate-800">$${p.toFixed(2)}</td>
+                    <td class="${yoy !== null && yoy >= 0 ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}">${yoy !== null ? (yoy >= 0 ? '+' : '') + yoy.toFixed(2) + '%' : '—'}</td>
+                    <td>${pn.toFixed(4)}</td>
+                    <td class="${toneCls}">${tone}</td>
+                    <td>$${parseFloat(row['Revenue ($B)']).toFixed(2)}B</td>
+                    <td>$${parseFloat(row['Net Income ($B)']).toFixed(2)}B</td>
+                    <td>${parseFloat(row['Operating Margin (%)']).toFixed(2)}%</td>
+                    <td>${parseFloat(row['Return on Equity (%)']).toFixed(2)}%</td>
+                    <td>${parseFloat(row['Current Ratio (x)']).toFixed(2)}x</td>
+                    <td>${parseFloat(row['Debt-to-Equity (x)']).toFixed(2)}x</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderDualAxisChart() {
+            const ctx = document.getElementById('dualAxisChart').getContext('2d');
+            const summary = window.FINANCIAL_DATA[currentTicker].sheets['Executive Summary'];
+            const labels = summary.map(r => r['Fiscal Year'].toString());
+            const prices = summary.map(r => parseFloat(r['Stock Price ($)']));
+            const pns = summary.map(r => parseFloat(r['MD&A Sentiment P/N']));
+
+            if (dualAxisChartInstance) {
+                dualAxisChartInstance.destroy();
+            }
+
+            dualAxisChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Stock Price ($)',
+                            data: prices,
+                            borderColor: '#1F4E79',
+                            backgroundColor: 'rgba(31, 78, 121, 0.1)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#1F4E79',
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            yAxisID: 'yPrice',
+                            tension: 0.25,
+                            fill: true
+                        },
+                        {
+                            label: 'MD&A Sentiment P/N',
+                            data: pns,
+                            borderColor: '#C00000',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2.5,
+                            borderDash: [5, 4],
+                            pointBackgroundColor: '#C00000',
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            yAxisID: 'yPn',
+                            tension: 0.25
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0F172A',
+                            titleFont: { size: 13, weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            padding: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.datasetIndex === 0) {
+                                        return `Stock Price: $${context.parsed.y.toFixed(2)}`;
+                                    } else {
+                                        return `MD&A Sentiment P/N: ${context.parsed.y.toFixed(4)}`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { weight: 'bold' } }
+                        },
+                        yPrice: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Stock Price (USD)', font: { weight: 'bold', size: 12 }, color: '#1F4E79' },
+                            ticks: { callback: v => '$' + v }
+                        },
+                        yPn: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'MD&A Sentiment P/N Ratio', font: { weight: 'bold', size: 12 }, color: '#C00000' },
+                            grid: { drawOnChartArea: false },
+                            ticks: { callback: v => v.toFixed(2) }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderRatiosTable() {
+            const ratios = window.FINANCIAL_DATA[currentTicker].sheets['Financial Ratios'];
+            const filterInput = (document.getElementById('ratio-search-input').value || '').toLowerCase().trim();
+            const tbody = document.getElementById('ratios-tbody');
+            tbody.innerHTML = '';
+
+            ratios.forEach(r => {
+                const metric = r['Ratio / Metric'] || '';
+                const category = r['Category'] || '';
+                const formula = r['Formula / Definition'] || '—';
+                const fmt = r['Format'] || 'multiplier';
+
+                // Category filter
+                if (currentRatioCategory !== 'All Categories' && category.toLowerCase() !== currentRatioCategory.toLowerCase()) {
+                    return;
+                }
+                // Text search filter
+                if (filterInput && !metric.toLowerCase().includes(filterInput) && !formula.toLowerCase().includes(filterInput)) {
+                    return;
+                }
+
+                let catBadge = 'bg-slate-100 text-slate-700';
+                if (category === 'Liquidity') catBadge = 'bg-blue-50 text-blue-700 border border-blue-200';
+                if (category === 'Solvency') catBadge = 'bg-amber-50 text-amber-700 border border-amber-200';
+                if (category === 'Efficiency') catBadge = 'bg-purple-50 text-purple-700 border border-purple-200';
+                if (category === 'Profitability') catBadge = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+
+                const tr = document.createElement('tr');
+                let html = `<td class="font-bold text-slate-800">${metric}</td>`;
+                html += `<td><span class="text-xs px-2.5 py-0.5 rounded-full font-bold ${catBadge}">${category}</span></td>`;
+                html += `<td class="text-xs text-slate-500 font-mono text-left">${formula}</td>`;
+
+                for (let yr = 2016; yr <= 2025; yr++) {
+                    const val = r[yr.toString()];
+                    html += `<td>${formatNumberCell(val, metric, fmt)}</td>`;
+                }
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderStatementsTab() {
+            document.getElementById('statement-title').textContent = `${currentTicker} 10-Year ${currentStatement} ($ Millions)`;
+            const df = window.FINANCIAL_DATA[currentTicker].sheets[currentStatement] || [];
+            const tbody = document.getElementById('statements-tbody');
+            tbody.innerHTML = '';
+
+            df.forEach(row => {
+                const rawLabel = (row['Line Item'] || row['Line Item / Financial Concept'] || '').toString();
+                const cleanLabel = rawLabel.trim();
+                const tr = document.createElement('tr');
+
+                // Determine if this is a section category header
+                const isHeader = HEADER_LABELS.includes(cleanLabel.toUpperCase());
+                const isTotal = TOTAL_LABELS.includes(cleanLabel.toLowerCase());
+
+                if (isHeader) {
+                    tr.className = 'header-row';
+                    let html = `<td colspan="11" class="py-2 px-4">${cleanLabel}</td>`;
+                    tr.innerHTML = html;
+                } else {
+                    if (isTotal) tr.className = 'total-row';
+                    let indent = rawLabel.startsWith('    ') ? 'pl-8' : 'pl-4';
+                    let html = `<td class="${indent}">${cleanLabel}</td>`;
+                    for (let yr = 2016; yr <= 2025; yr++) {
+                        const val = row[yr.toString()];
+                        html += `<td>${formatNumberCell(val, cleanLabel)}</td>`;
+                    }
+                    tr.innerHTML = html;
+                }
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderSentimentTab() {
+            const sentRows = window.FINANCIAL_DATA[currentTicker].sheets['Sentiment Analysis'] || [];
+            const tbody = document.getElementById('sentiment-tbody');
+            tbody.innerHTML = '';
+
+            let pns = [];
+            sentRows.forEach(r => {
+                const pn = parseFloat(r['P/N Ratio']);
+                if (!isNaN(pn)) pns.push(pn);
+                const tr = document.createElement('tr');
+                const tone = r['Tone Classification'] || (pn >= 1.0 ? 'Positive' : 'Cautious / Negative');
+                const toneCls = tone.toLowerCase().includes('positive') ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold';
+
+                tr.innerHTML = `
+                    <td class="font-bold text-slate-800">${r['Fiscal Year']}</td>
+                    <td>${parseInt(r['Total Words']).toLocaleString()}</td>
+                    <td class="text-emerald-700 font-semibold">${parseInt(r['Positive Count']).toLocaleString()}</td>
+                    <td class="text-rose-700 font-semibold">${parseInt(r['Negative Count']).toLocaleString()}</td>
+                    <td class="${parseInt(r['Net Score']) >= 0 ? 'text-emerald-700' : 'text-rose-700'} font-bold">${parseInt(r['Net Score']) > 0 ? '+' : ''}${parseInt(r['Net Score']).toLocaleString()}</td>
+                    <td class="font-bold text-blue-900">${pn.toFixed(4)}</td>
+                    <td>${(parseFloat(r['Net Sentiment %']) * 100).toFixed(2)}%</td>
+                    <td class="${toneCls}">${tone}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Summary stats
+            const avgPn = pns.length ? (pns.reduce((a, b) => a + b, 0) / pns.length).toFixed(4) : '1.0000';
+            const maxPn = pns.length ? Math.max(...pns).toFixed(4) : '1.0000';
+            const minPn = pns.length ? Math.min(...pns).toFixed(4) : '1.0000';
+
+            document.getElementById('sentiment-stats-grid').innerHTML = `
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">10-Year Average P/N Ratio</div>
+                    <div class="text-2xl font-black text-blue-900 mt-1">${avgPn}</div>
+                    <div class="text-xs text-slate-500 mt-1 font-medium">Loughran-McDonald Multi-Year Baseline</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">Most Optimistic Filing</div>
+                    <div class="text-2xl font-black text-emerald-700 mt-1">${maxPn}</div>
+                    <div class="text-xs text-slate-500 mt-1 font-medium">Peak positive qualitative tone</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="text-xs font-semibold text-slate-500 uppercase">Most Cautious Filing</div>
+                    <div class="text-2xl font-black text-rose-700 mt-1">${minPn}</div>
+                    <div class="text-xs text-slate-500 mt-1 font-medium">Maximum risk / uncertainty emphasis</div>
+                </div>
+            `;
+
+            renderSentimentChart();
+        }
+
+        function renderSentimentChart() {
+            const ctx = document.getElementById('sentimentBarChart').getContext('2d');
+            const sentRows = window.FINANCIAL_DATA[currentTicker].sheets['Sentiment Analysis'] || [];
+            const labels = sentRows.map(r => r['Fiscal Year'].toString());
+            const pns = sentRows.map(r => parseFloat(r['P/N Ratio']));
+            const bgColors = pns.map(p => p >= 1.0 ? '#10B981' : '#F43F5E');
+
+            if (sentimentChartInstance) {
+                sentimentChartInstance.destroy();
+            }
+
+            sentimentChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'MD&A Sentiment P/N Ratio',
+                        data: pns,
+                        backgroundColor: bgColors,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `P/N Ratio: ${ctx.parsed.y.toFixed(4)} (${ctx.parsed.y >= 1.0 ? 'Positive Tone' : 'Cautious Tone'})`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { weight: 'bold' } } },
+                        y: {
+                            title: { display: true, text: 'P/N Ratio' },
+                            suggestedMin: 0.4
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderStockTab() {
+            document.getElementById('stock-chart-title').textContent = `${currentTicker} 10-Year Closing Stock Price & YoY Returns`;
+            const stockRows = window.FINANCIAL_DATA[currentTicker].sheets['Stock Price'] || [];
+            const tbody = document.getElementById('stock-tbody');
+            tbody.innerHTML = '';
+
+            stockRows.forEach(r => {
+                const tr = document.createElement('tr');
+                const p = parseFloat(r['Closing Price ($)']);
+                const adj = parseFloat(r['Adjusted Close ($)']);
+                const vol = parseInt(r['Trading Volume']);
+                const ret = r['YoY % Return'] !== null ? parseFloat(r['YoY % Return']) : null;
+                const retFormatted = ret !== null ? ((ret > 0 ? '+' : '') + (ret * (Math.abs(ret) < 2.0 ? 100 : 1)).toFixed(2) + '%') : '—';
+                const retCls = ret !== null && ret >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold';
+
+                tr.innerHTML = `
+                    <td class="font-bold text-slate-800">${r['Fiscal Year']}</td>
+                    <td class="font-mono text-slate-600 text-xs">${r['Balance Sheet Date']}</td>
+                    <td class="font-mono text-slate-600 text-xs">${r['Actual Trading Date']}</td>
+                    <td class="font-bold text-slate-900">$${p.toFixed(2)}</td>
+                    <td class="text-slate-700">$${adj.toFixed(2)}</td>
+                    <td class="font-mono text-xs">${vol.toLocaleString()}</td>
+                    <td class="${retCls}">${retFormatted}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            renderStockChart();
+        }
+
+        function renderStockChart() {
+            const ctx = document.getElementById('stockAreaChart').getContext('2d');
+            const stockRows = window.FINANCIAL_DATA[currentTicker].sheets['Stock Price'] || [];
+            const labels = stockRows.map(r => r['Fiscal Year'].toString());
+            const prices = stockRows.map(r => parseFloat(r['Closing Price ($)']));
+
+            if (stockChartInstance) {
+                stockChartInstance.destroy();
+            }
+
+            stockChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Closing Price ($)',
+                        data: prices,
+                        borderColor: '#2563EB',
+                        backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#2563EB',
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `Closing Price: $${ctx.parsed.y.toFixed(2)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { weight: 'bold' } } },
+                        y: {
+                            ticks: { callback: v => '$' + v }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize application on load
+        window.addEventListener('DOMContentLoaded', () => {
+            switchTicker('AAPL');
+        });
+    </script>
+</body>
+</html>
+"""
