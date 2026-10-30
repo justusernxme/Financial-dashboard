@@ -16,7 +16,9 @@ def extract_full_dataset() -> Dict[str, Any]:
     """Extract and structure audited 10-year datasets for AAPL and MSFT."""
     dataset: Dict[str, Any] = {}
 
-    for ticker in ("AAPL", "MSFT"):
+    for ticker in (
+        "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA"
+    ):
         bundle = load_company_data_bundle(ticker)
         summary = bundle["Executive Summary"]
         prices = [float(p) for p in summary["Stock Price ($)"]]

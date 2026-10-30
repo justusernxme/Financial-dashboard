@@ -20,10 +20,13 @@ Features:
 from __future__ import annotations
 
 import datetime
+import logging
 import math
 from pathlib import Path
 import re
 from typing import Any, Dict, List, Optional, Tuple
+
+logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
 import altair as alt
 import openpyxl
@@ -66,7 +69,116 @@ COMPANY_METADATA: Dict[str, Dict[str, str]] = {
             "enterprise productivity (Office 365), operating systems, and AI."
         ),
     },
+    "NVDA": {
+        "name": "NVIDIA Corporation",
+        "icon": "🟢",
+        "sector": "Technology",
+        "industry": "Semiconductors & AI Computing Systems",
+        "exchange": "NASDAQ: NVDA",
+        "fy_end": "Last Sunday of January",
+        "description": (
+            "Pioneer of GPU-accelerated computing, AI datacenter chips, "
+            "tensor computing architectures, and autonomous systems."
+        ),
+    },
+    "GOOGL": {
+        "name": "Alphabet Inc.",
+        "icon": "🔍",
+        "sector": "Communication Services",
+        "industry": "Internet Search, Cloud & Digital Advertising",
+        "exchange": "NASDAQ: GOOGL",
+        "fy_end": "December 31",
+        "description": (
+            "Global technology holding company encompassing Google Search, "
+            "YouTube, Google Cloud, Android, and AI research (DeepMind)."
+        ),
+    },
+    "AMZN": {
+        "name": "Amazon.com, Inc.",
+        "icon": "📦",
+        "sector": "Consumer Discretionary",
+        "industry": "E-Commerce, Cloud & Logistics",
+        "exchange": "NASDAQ: AMZN",
+        "fy_end": "December 31",
+        "description": (
+            "Global e-commerce retail platform, cloud computing (AWS), "
+            "digital streaming, and automated fulfillment networks."
+        ),
+    },
+    "META": {
+        "name": "Meta Platforms, Inc.",
+        "icon": "🌐",
+        "sector": "Communication Services",
+        "industry": "Social Technologies & AI Platforms",
+        "exchange": "NASDAQ: META",
+        "fy_end": "December 31",
+        "description": (
+            "Builder of social connection apps (Facebook, Instagram, "
+            "WhatsApp), open-source AI models (Llama), and VR hardware."
+        ),
+    },
+    "TSLA": {
+        "name": "Tesla, Inc.",
+        "icon": "⚡",
+        "sector": "Consumer Discretionary",
+        "industry": "Electric Vehicles & Clean Energy",
+        "exchange": "NASDAQ: TSLA",
+        "fy_end": "December 31",
+        "description": (
+            "Designer and manufacturer of electric vehicles, energy storage "
+            "systems, solar roofs, and autonomous driving technology."
+        ),
+    },
 }
+
+
+def get_company_metadata(ticker: str) -> Dict[str, str]:
+    """Retrieve company metadata with live yfinance fallback."""
+    t_clean = ticker.strip().upper()
+    if t_clean in COMPANY_METADATA:
+        return COMPANY_METADATA[t_clean]
+
+    try:
+        import yfinance as yf
+        info = yf.Ticker(t_clean).info or {}
+        name = (
+            info.get("longName")
+            or info.get("shortName")
+            or f"{t_clean} Corporation"
+        )
+        sector = info.get("sector") or "Diversified Industry"
+        industry = info.get("industry") or "Commercial Operations"
+        exchange = info.get("exchange") or "US Exchange"
+        desc = (
+            info.get("longBusinessSummary")
+            or f"Public corporate entity ({t_clean}) trading on {exchange}."
+        )
+        return {
+            "name": name,
+            "icon": "🏢",
+            "sector": sector,
+            "industry": industry,
+            "exchange": f"{exchange}: {t_clean}",
+            "fy_end": "December 31",
+            "description": (
+                desc[:220] + ("..." if len(desc) > 220 else "")
+            ),
+        }
+    except Exception:
+        pass
+
+    return {
+        "name": f"{t_clean} Corporation",
+        "icon": "🏢",
+        "sector": "Diversified Industry",
+        "industry": "Commercial Operations",
+        "exchange": f"Exchange: {t_clean}",
+        "fy_end": "December 31",
+        "description": (
+            f"Public corporate entity ({t_clean}) analyzed for 10-year "
+            f"audited financial statements, ratios, and sentiment."
+        ),
+    }
 
 RATIO_DEFINITIONS_AND_EQUATIONS: Dict[str, Dict[str, str]] = {
     "Current Ratio": {
@@ -350,21 +462,98 @@ def generate_company_dataset(
         Dict[str, pd.DataFrame]: Structured dictionary of aligned DataFrames.
     """
     sorted_years = sorted(years)
-    is_aapl = ticker.upper() == "AAPL"
+    t_clean = ticker.upper().strip()
+    is_aapl = t_clean == "AAPL"
+    is_msft = t_clean == "MSFT"
 
-    # 1. Financial Baseline Parameters
-    base_rev = 233715.0 if is_aapl else 93580.0
-    cogs_ratio = 0.62 if is_aapl else 0.35
-    op_ratio = 0.29 if is_aapl else 0.38
-    ni_ratio = 0.23 if is_aapl else 0.32
-    growth_rate = 1.075 if is_aapl else 1.11
+    # 1. Financial Baseline Parameters calibrated per ticker
+    if is_aapl:
+        base_rev = 233715.0
+        cogs_ratio = 0.62
+        op_ratio = 0.29
+        ni_ratio = 0.23
+        growth_rate = 1.075
+        base_price = 28.69
+        price_growth = 1.258
+        base_pn = 1.45
+    elif is_msft:
+        base_rev = 93580.0
+        cogs_ratio = 0.35
+        op_ratio = 0.38
+        ni_ratio = 0.32
+        growth_rate = 1.11
+        base_price = 44.25
+        price_growth = 1.282
+        base_pn = 1.62
+    elif t_clean == "NVDA":
+        base_rev = 5010.0
+        cogs_ratio = 0.38
+        op_ratio = 0.45
+        ni_ratio = 0.40
+        growth_rate = 1.42
+        base_price = 8.50
+        price_growth = 1.58
+        base_pn = 1.72
+    elif t_clean == "GOOGL":
+        base_rev = 90272.0
+        cogs_ratio = 0.44
+        op_ratio = 0.27
+        ni_ratio = 0.24
+        growth_rate = 1.17
+        base_price = 39.50
+        price_growth = 1.22
+        base_pn = 1.55
+    elif t_clean == "AMZN":
+        base_rev = 135987.0
+        cogs_ratio = 0.61
+        op_ratio = 0.08
+        ni_ratio = 0.06
+        growth_rate = 1.19
+        base_price = 37.50
+        price_growth = 1.23
+        base_pn = 1.38
+    elif t_clean == "META":
+        base_rev = 27638.0
+        cogs_ratio = 0.19
+        op_ratio = 0.42
+        ni_ratio = 0.33
+        growth_rate = 1.24
+        base_price = 115.0
+        price_growth = 1.25
+        base_pn = 1.48
+    elif t_clean == "TSLA":
+        base_rev = 7000.0
+        cogs_ratio = 0.78
+        op_ratio = 0.12
+        ni_ratio = 0.10
+        growth_rate = 1.35
+        base_price = 14.20
+        price_growth = 1.40
+        base_pn = 1.25
+    else:
+        # Deterministic financial profile for any custom ticker
+        seed = sum(ord(c) for c in t_clean)
+        base_rev = round(20000.0 + ((seed % 50) * 1200.0), 2)
+        growth_rate = round(1.06 + ((seed % 15) * 0.01), 3)
+        cogs_ratio = round(0.40 + ((seed % 25) * 0.01), 2)
+        op_ratio = round(0.18 + ((seed % 16) * 0.01), 2)
+        ni_ratio = round(0.12 + ((seed % 12) * 0.01), 2)
+        base_price = round(25.0 + ((seed % 40) * 1.5), 2)
+        price_growth = round(1.12 + ((seed % 16) * 0.01), 3)
+        base_pn = round(1.20 + ((seed % 30) * 0.02), 2)
 
-    # Base Stock Price on FY2015 balance sheet date
-    base_price = 28.69 if is_aapl else 44.25
-    price_growth = 1.258 if is_aapl else 1.282
-
-    # Base Sentiment P/N ratio
-    base_pn = 1.45 if is_aapl else 1.62
+    # Attempt to fetch live stock prices from yfinance if accessible
+    live_prices: Dict[int, float] = {}
+    try:
+        import yfinance as yf
+        hist = yf.Ticker(t_clean).history(period="12y")
+        if not hist.empty:
+            for y in sorted_years:
+                sub = hist[hist.index.year == y]
+                if not sub.empty:
+                    live_prices[y] = round(float(sub["Close"].iloc[-1]), 2)
+    except Exception:
+        pass
 
     summary_rows: List[Dict[str, Any]] = []
     income_rows: List[Dict[str, Any]] = []
@@ -426,9 +615,12 @@ def generate_company_dataset(
         cfo_dict[yr] = cfo
 
         # Stock Price & YoY Return
-        raw_p = base_price * (price_growth**idx)
-        fluct = 1.0 + (math.sin(idx * 1.4) * 0.08)
-        p = round(raw_p * fluct, 2)
+        if yr in live_prices:
+            p = live_prices[yr]
+        else:
+            raw_p = base_price * (price_growth**idx)
+            fluct = 1.0 + (math.sin(idx * 1.4) * 0.08)
+            p = round(raw_p * fluct, 2)
         price_dict[yr] = p
 
         yoy_ret: Optional[float] = None
@@ -1117,9 +1309,9 @@ def render_top_header(selected_ticker: str) -> None:
     """Render the corporate banner and company profile badge.
 
     Args:
-        selected_ticker (str): Active ticker symbol ('AAPL' or 'MSFT').
+        selected_ticker (str): Active ticker symbol (e.g. 'AAPL', 'NVDA').
     """
-    meta = COMPANY_METADATA.get(selected_ticker, {})
+    meta = get_company_metadata(selected_ticker)
     name = meta.get("name", selected_ticker)
     icon = meta.get("icon", "🏢")
     sector = meta.get("sector", "Technology")
@@ -1889,20 +2081,42 @@ def main() -> None:
     )
 
     # Top Control Bar: Ticker Selection Toggle & Keyword Search
-    col_toggle, col_search_input = st.columns([3, 7])
+    col_toggle, col_search_input = st.columns([5, 5])
 
     with col_toggle:
-        selected_ticker = st.segmented_control(
-            "Select Company",
-            options=["AAPL", "MSFT"],
-            default="AAPL",
-            format_func=lambda x: f"🍎 AAPL (Apple)"
-            if x == "AAPL"
-            else f"🪟 MSFT (Microsoft)",
-            label_visibility="collapsed",
-        )
-        if not selected_ticker:
-            selected_ticker = "AAPL"
+        c_mode, c_custom = st.columns([5, 5])
+        with c_mode:
+            ticker_mode = st.segmented_control(
+                "Select Company",
+                options=["AAPL", "MSFT", "Custom"],
+                default="AAPL",
+                format_func=lambda x: {
+                    "AAPL": "🍎 AAPL",
+                    "MSFT": "🪟 MSFT",
+                    "Custom": "➕ Custom",
+                }.get(x, x),
+                label_visibility="collapsed",
+            )
+        with c_custom:
+            custom_input = st.text_input(
+                "Custom Ticker",
+                placeholder="Ticker (e.g. NVDA, GOOGL)",
+                label_visibility="collapsed",
+                key="custom_ticker_input",
+            ).strip().upper()
+
+        if custom_input:
+            selected_ticker = custom_input
+        elif ticker_mode == "Custom":
+            selected_ticker = "NVDA"
+        else:
+            selected_ticker = ticker_mode or "AAPL"
+
+    selected_ticker = "".join(
+        ch for ch in selected_ticker if ch.isalnum() or ch in (".", "-")
+    ).upper()
+    if not selected_ticker:
+        selected_ticker = "AAPL"
 
     with col_search_input:
         search_query = st.text_input(

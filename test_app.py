@@ -342,6 +342,34 @@ class TestStreamlitApp(unittest.TestCase):
         )
         self.assertEqual(search_res_it["2025"].iloc[0], "22,604.00")
 
+    def test_custom_ticker_support(self) -> None:
+        """Verify dynamic custom ticker metadata and 10-year dataset."""
+        from app import get_company_metadata, load_company_data_bundle
+
+        # 1. Test common custom ticker metadata
+        nvda_meta = get_company_metadata("NVDA")
+        self.assertEqual(nvda_meta["name"], "NVIDIA Corporation")
+        self.assertIn("Semiconductors", nvda_meta["industry"])
+
+        # 2. Test unknown arbitrary ticker metadata fallback
+        xyz_meta = get_company_metadata("XYZ")
+        self.assertEqual(xyz_meta["name"], "XYZ Corporation")
+
+        # 3. Test dynamic 10-year dataset loading for custom ticker
+        nvda_bundle = load_company_data_bundle("NVDA")
+        self.assertIn("Executive Summary", nvda_bundle)
+        self.assertIn("Financial Ratios", nvda_bundle)
+        self.assertIn("Income Statement", nvda_bundle)
+        self.assertIn("Balance Sheet", nvda_bundle)
+        self.assertIn("Cash Flows", nvda_bundle)
+
+        nvda_summary = nvda_bundle["Executive Summary"]
+        self.assertEqual(len(nvda_summary), 10)
+        expected_years = [2016 + i for i in range(10)]
+        self.assertEqual(
+            nvda_summary["Fiscal Year"].tolist(), expected_years
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
