@@ -364,10 +364,25 @@ CUSTOM_CSS: str = """
         padding-right: 2rem;
         max-width: 100%;
     }
-    /* Top Control Bar Spacing */
+    /* Top Control Bar Spacing and Precise Alignment */
     div[data-testid="stHorizontalBlock"]:first-of-type {
-        margin-top: 1rem;
-        margin-bottom: 1rem;
+        margin-top: 0.75rem !important;
+        margin-bottom: 1.25rem !important;
+        align-items: center !important;
+    }
+    div[data-testid="stHorizontalBlock"]:first-of-type
+    > div[data-testid="column"] {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+    }
+    div[data-testid="stHorizontalBlock"]:first-of-type
+    div[data-testid="stTextInput"],
+    div[data-testid="stHorizontalBlock"]:first-of-type
+    div[data-testid="stSegmentedControl"] {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        width: 100% !important;
     }
     /* Sleek Header Banner */
     .header-banner {
@@ -2080,45 +2095,33 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    # Top Control Bar: Ticker Selection Toggle & Keyword Search
-    col_toggle, col_search_input = st.columns([5, 5])
+    # Top Control Bar: Ticker Toggle, Custom Ticker, & Keyword Search
+    col_toggle, col_custom_ticker, col_keyword_search = st.columns(
+        [2.6, 3.4, 6.0],
+        vertical_alignment="center",
+    )
 
     with col_toggle:
-        c_mode, c_custom = st.columns([5, 5])
-        with c_mode:
-            ticker_mode = st.segmented_control(
-                "Select Company",
-                options=["AAPL", "MSFT", "Custom"],
-                default="AAPL",
-                format_func=lambda x: {
-                    "AAPL": "🍎 AAPL",
-                    "MSFT": "🪟 MSFT",
-                    "Custom": "➕ Custom",
-                }.get(x, x),
-                label_visibility="collapsed",
-            )
-        with c_custom:
-            custom_input = st.text_input(
-                "Custom Ticker",
-                placeholder="Ticker (e.g. NVDA, GOOGL)",
-                label_visibility="collapsed",
-                key="custom_ticker_input",
-            ).strip().upper()
+        preset_choice = st.segmented_control(
+            "Select Company",
+            options=["AAPL", "MSFT"],
+            default="AAPL",
+            format_func=lambda x: "🍎 AAPL" if x == "AAPL" else "🪟 MSFT",
+            label_visibility="collapsed",
+            key="preset_ticker_toggle",
+        )
+        if not preset_choice:
+            preset_choice = "AAPL"
 
-        if custom_input:
-            selected_ticker = custom_input
-        elif ticker_mode == "Custom":
-            selected_ticker = "NVDA"
-        else:
-            selected_ticker = ticker_mode or "AAPL"
+    with col_custom_ticker:
+        custom_input = st.text_input(
+            "Custom Ticker",
+            placeholder="🔍 Ticker (e.g. NVDA, GOOGL)...",
+            label_visibility="collapsed",
+            key="custom_ticker_input",
+        ).strip().upper()
 
-    selected_ticker = "".join(
-        ch for ch in selected_ticker if ch.isalnum() or ch in (".", "-")
-    ).upper()
-    if not selected_ticker:
-        selected_ticker = "AAPL"
-
-    with col_search_input:
+    with col_keyword_search:
         search_query = st.text_input(
             "Quick Metric & Keyword Search",
             placeholder=(
@@ -2126,7 +2129,21 @@ def main() -> None:
                 "(e.g., 'Revenue', 'Debt', 'Margin', 'ROE', 'Cash')..."
             ),
             label_visibility="collapsed",
+            key="keyword_search_input",
         )
+
+    # Resolve active ticker: Custom input takes precedence if entered,
+    # otherwise defaults cleanly to the selected preset (AAPL or MSFT)
+    if custom_input:
+        selected_ticker = custom_input
+    else:
+        selected_ticker = preset_choice
+
+    selected_ticker = "".join(
+        ch for ch in selected_ticker if ch.isalnum() or ch in (".", "-")
+    ).upper()
+    if not selected_ticker:
+        selected_ticker = "AAPL"
 
     # Load All Datasets for Selected Company
     data_bundle = load_company_data_bundle(selected_ticker)
