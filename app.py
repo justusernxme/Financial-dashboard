@@ -77,13 +77,21 @@ COLOR_RED: str = "#B00020"
 
 CUSTOM_CSS: str = """
 <style>
-    /* Global Container Padding */
+    /* Generous top clearance for Streamlit / GitHub web toolbar */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+    }
     .block-container {
-        padding-top: 1.5rem;
-        padding-bottom: 2rem;
+        padding-top: 6rem !important;
+        padding-bottom: 2.5rem;
         padding-left: 2rem;
         padding-right: 2rem;
         max-width: 100%;
+    }
+    /* Top Control Bar Spacing */
+    div[data-testid="stHorizontalBlock"]:first-of-type {
+        margin-top: 1rem;
+        margin-bottom: 1rem;
     }
     /* Sleek Header Banner */
     .header-banner {
@@ -1673,6 +1681,12 @@ def main() -> None:
 
     # Inject Custom CSS
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
+    # Top spacing spacer to ensure clearance under Streamlit web toolbar
+    st.markdown(
+        '<div style="height: 1.5rem;" aria-hidden="true"></div>',
+        unsafe_allow_html=True,
+    )
 
     # Top Control Bar: Ticker Selection Toggle & Keyword Search
     col_toggle, col_search_input = st.columns([3, 7])
