@@ -68,6 +68,170 @@ COMPANY_METADATA: Dict[str, Dict[str, str]] = {
     },
 }
 
+RATIO_DEFINITIONS_AND_EQUATIONS: Dict[str, Dict[str, str]] = {
+    "Current Ratio": {
+        "Category": "Liquidity",
+        "Equation": "Total Current Assets / Total Current Liabilities",
+        "Definition": (
+            "Measures a company's ability to cover short-term obligations "
+            "due within one year using liquid short-term assets."
+        ),
+    },
+    "Quick Ratio (Acid-Test)": {
+        "Category": "Liquidity",
+        "Equation": (
+            "(Cash & Cash Equiv + Marketable Securities + "
+            "Accounts Receivable) / Current Liabilities"
+        ),
+        "Definition": (
+            "Stringent measure of immediate liquidity that excludes "
+            "inventories and prepaid expenses to assess instant debt coverage."
+        ),
+    },
+    "Cash Ratio": {
+        "Category": "Liquidity",
+        "Equation": (
+            "(Cash & Cash Equiv + Marketable Securities) / "
+            "Current Liabilities"
+        ),
+        "Definition": (
+            "Conservative liquidity metric evaluating debt repayment "
+            "capacity using exclusively available cash and marketable "
+            "securities."
+        ),
+    },
+    "Operating Cash Flow Ratio": {
+        "Category": "Liquidity",
+        "Equation": "Cash Flow from Operations / Current Liabilities",
+        "Definition": (
+            "Measures liquidity and debt coverage by comparing cash "
+            "generated directly from operations to short-term liabilities."
+        ),
+    },
+    "Debt-to-Equity Ratio": {
+        "Category": "Solvency",
+        "Equation": (
+            "Total Debt (Short-Term + Long-Term) / Stockholders' Equity"
+        ),
+        "Definition": (
+            "Quantifies financial leverage and capital structure by "
+            "comparing debt financing relative to shareholders' equity."
+        ),
+    },
+    "Debt-to-Assets Ratio": {
+        "Category": "Solvency",
+        "Equation": "Total Debt / Total Assets",
+        "Definition": (
+            "Measures the percentage of total corporate assets financed "
+            "through debt obligations rather than equity capital."
+        ),
+    },
+    "Financial Leverage": {
+        "Category": "Solvency",
+        "Equation": "Total Assets / Stockholders' Equity",
+        "Definition": (
+            "DuPont equity multiplier showing total asset exposure per "
+            "dollar of equity capital, indicating balance sheet leverage."
+        ),
+    },
+    "Financial Leverage (Equity Multiplier)": {
+        "Category": "Solvency",
+        "Equation": "Total Assets / Stockholders' Equity",
+        "Definition": (
+            "DuPont equity multiplier showing total asset exposure per "
+            "dollar of equity capital, indicating balance sheet leverage."
+        ),
+    },
+    "Interest Coverage Ratio": {
+        "Category": "Solvency",
+        "Equation": "Operating Income (EBIT) / Interest Expense",
+        "Definition": (
+            "Measures debt-servicing safety by determining how many times "
+            "operating earnings cover required interest payments."
+        ),
+    },
+    "Asset Turnover Ratio": {
+        "Category": "Efficiency",
+        "Equation": "Total Revenues / Total Assets",
+        "Definition": (
+            "Evaluates asset efficiency by indicating revenue generated "
+            "for each dollar invested in the company's total asset base."
+        ),
+    },
+    "Receivables Turnover Ratio": {
+        "Category": "Efficiency",
+        "Equation": "Total Revenues / Accounts Receivable, Net",
+        "Definition": (
+            "Measures operational efficiency in extending commercial credit "
+            "and collecting outstanding customer receivables."
+        ),
+    },
+    "Days Sales Outstanding (DSO)": {
+        "Category": "Efficiency",
+        "Equation": "(Accounts Receivable * 365) / Total Revenues",
+        "Definition": (
+            "Average number of days required to collect cash after credit "
+            "sales; lower numbers indicate faster cash collection."
+        ),
+    },
+    "Inventory Turnover Ratio": {
+        "Category": "Efficiency",
+        "Equation": "Cost of Goods Sold / Inventories",
+        "Definition": (
+            "Measures how many times inventory stock is sold, replaced, "
+            "and cycled throughout a fiscal year."
+        ),
+    },
+    "Days Inventory Outstanding (DIO)": {
+        "Category": "Efficiency",
+        "Equation": "(Inventories * 365) / Cost of Goods Sold",
+        "Definition": (
+            "Average duration in days that manufactured goods remain "
+            "in inventory before being sold to customers."
+        ),
+    },
+    "Gross Profit Margin": {
+        "Category": "Profitability",
+        "Equation": "Gross Profit / Total Revenues",
+        "Definition": (
+            "Assesses core production efficiency and pricing power after "
+            "direct manufacturing costs (COGS), before operating overhead."
+        ),
+    },
+    "Operating Profit Margin": {
+        "Category": "Profitability",
+        "Equation": "Operating Income (EBIT) / Total Revenues",
+        "Definition": (
+            "Reflects operating profitability after deducting cost of "
+            "sales, SG&A, and R&D expenses from total revenues."
+        ),
+    },
+    "Net Profit Margin": {
+        "Category": "Profitability",
+        "Equation": "Net Income / Total Revenues",
+        "Definition": (
+            "Measures bottom-line profitability, indicating percentage "
+            "of revenue converted into net profit after all expenses & taxes."
+        ),
+    },
+    "Return on Assets (ROA)": {
+        "Category": "Profitability",
+        "Equation": "Net Income / Total Assets",
+        "Definition": (
+            "Assesses management effectiveness in utilizing capital assets "
+            "to generate net earnings."
+        ),
+    },
+    "Return on Equity (ROE)": {
+        "Category": "Profitability",
+        "Equation": "Net Income / Stockholders' Equity",
+        "Definition": (
+            "Benchmark metric evaluating shareholder wealth creation and "
+            "net return on equity capital invested by shareholders."
+        ),
+    },
+}
+
 COLOR_NAVY: str = "#1F4E79"
 COLOR_CRIMSON: str = "#C00000"
 COLOR_SLATE: str = "#2F5597"
@@ -1399,7 +1563,6 @@ def render_financial_ratios_tab(
         rec: Dict[str, Any] = {
             "Ratio / Metric": row["Ratio / Metric"],
             "Category": row["Category"],
-            "Formula / Definition": row.get("Formula / Definition", ""),
         }
         for yr in year_cols:
             val = row[yr]
@@ -1419,6 +1582,43 @@ def render_financial_ratios_tab(
 
     styled_df = pd.DataFrame(formatted_rows)
     st.dataframe(styled_df, use_container_width=True, hide_index=True)
+
+    # Ratio Definitions & Equations Reference Guide Section
+    st.markdown("---")
+    st.markdown("##### 📐 Financial Ratio Equations & Analytical Definitions")
+    st.caption(
+        "Standard financial formulas and analytical interpretations for each "
+        "ratio in the table above."
+    )
+
+    glossary_rows = []
+    for _, r_row in filtered_ratios.iterrows():
+        r_name = str(r_row["Ratio / Metric"]).strip()
+        r_cat = str(r_row["Category"]).strip()
+        meta = RATIO_DEFINITIONS_AND_EQUATIONS.get(
+            r_name,
+            RATIO_DEFINITIONS_AND_EQUATIONS.get(
+                r_name.split(" (")[0],
+                {
+                    "Category": r_cat,
+                    "Equation": str(r_row.get("Formula / Definition", "—")),
+                    "Definition": (
+                        "Standard corporate financial performance indicator."
+                    ),
+                },
+            ),
+        )
+        glossary_rows.append(
+            {
+                "Ratio / Metric": r_name,
+                "Category": r_cat,
+                "Equation / Formula": meta["Equation"],
+                "Financial Definition & Interpretation": meta["Definition"],
+            }
+        )
+
+    glossary_df = pd.DataFrame(glossary_rows)
+    st.dataframe(glossary_df, use_container_width=True, hide_index=True)
 
     # Interactive Ratio Comparison Chart
     st.markdown("##### 📈 Interactive Ratio Historical Trend")

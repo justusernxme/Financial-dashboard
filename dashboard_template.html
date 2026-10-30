@@ -290,13 +290,37 @@
                         <tr>
                             <th>Ratio / Metric</th>
                             <th>Category</th>
-                            <th>Formula / Definition</th>
                             <th>2016</th><th>2017</th><th>2018</th><th>2019</th><th>2020</th>
                             <th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th>
                         </tr>
                     </thead>
                     <tbody id="ratios-tbody"></tbody>
                 </table>
+            </div>
+
+            <!-- Ratio Definitions & Equations Section -->
+            <div class="mt-8 pt-6 border-t border-slate-200">
+                <div class="mb-4">
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <span>📐</span> Financial Ratio Equations & Analytical Definitions
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        Standard corporate finance formulas and analytical interpretations for each ratio in the table above.
+                    </p>
+                </div>
+                <div class="table-container shadow-sm">
+                    <table>
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-700">
+                                <th class="w-60 text-left">Ratio / Metric</th>
+                                <th class="w-32 text-left">Category</th>
+                                <th class="w-72 text-left">Equation / Formula</th>
+                                <th class="text-left">Financial Definition & Analytical Interpretation</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ratio-definitions-tbody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -812,24 +836,128 @@
             });
         }
 
+        const RATIO_GLOSSARY = {
+            "Current Ratio": {
+                "Category": "Liquidity",
+                "Equation": "Total Current Assets / Total Current Liabilities",
+                "Definition": "Measures a company's ability to cover short-term obligations due within one year using liquid short-term assets."
+            },
+            "Quick Ratio (Acid-Test)": {
+                "Category": "Liquidity",
+                "Equation": "(Cash & Cash Equiv + Marketable Securities + Accounts Receivable) / Current Liabilities",
+                "Definition": "Stringent measure of immediate liquidity that excludes inventories and prepaid expenses to assess instant debt coverage."
+            },
+            "Cash Ratio": {
+                "Category": "Liquidity",
+                "Equation": "(Cash & Cash Equiv + Marketable Securities) / Current Liabilities",
+                "Definition": "Conservative liquidity metric evaluating debt repayment capacity using exclusively available cash and marketable securities."
+            },
+            "Operating Cash Flow Ratio": {
+                "Category": "Liquidity",
+                "Equation": "Cash Flow from Operations / Current Liabilities",
+                "Definition": "Measures liquidity and debt coverage by comparing cash generated directly from operations to short-term liabilities."
+            },
+            "Debt-to-Equity Ratio": {
+                "Category": "Solvency",
+                "Equation": "Total Debt (Short-Term + Long-Term) / Stockholders' Equity",
+                "Definition": "Quantifies financial leverage and capital structure by comparing debt financing relative to shareholders' equity."
+            },
+            "Debt-to-Assets Ratio": {
+                "Category": "Solvency",
+                "Equation": "Total Debt / Total Assets",
+                "Definition": "Measures the percentage of total corporate assets financed through debt obligations rather than equity capital."
+            },
+            "Financial Leverage": {
+                "Category": "Solvency",
+                "Equation": "Total Assets / Stockholders' Equity",
+                "Definition": "DuPont equity multiplier showing total asset exposure per dollar of equity capital, indicating balance sheet leverage."
+            },
+            "Financial Leverage (Equity Multiplier)": {
+                "Category": "Solvency",
+                "Equation": "Total Assets / Stockholders' Equity",
+                "Definition": "DuPont equity multiplier showing total asset exposure per dollar of equity capital, indicating balance sheet leverage."
+            },
+            "Interest Coverage Ratio": {
+                "Category": "Solvency",
+                "Equation": "Operating Income (EBIT) / Interest Expense",
+                "Definition": "Measures debt-servicing safety by determining how many times operating earnings cover required interest payments."
+            },
+            "Asset Turnover Ratio": {
+                "Category": "Efficiency",
+                "Equation": "Total Revenues / Total Assets",
+                "Definition": "Evaluates asset efficiency by indicating revenue generated for each dollar invested in the company's total asset base."
+            },
+            "Receivables Turnover Ratio": {
+                "Category": "Efficiency",
+                "Equation": "Total Revenues / Accounts Receivable, Net",
+                "Definition": "Measures operational efficiency in extending commercial credit and collecting outstanding customer receivables."
+            },
+            "Days Sales Outstanding (DSO)": {
+                "Category": "Efficiency",
+                "Equation": "(Accounts Receivable * 365) / Total Revenues",
+                "Definition": "Average number of days required to collect cash after credit sales; lower numbers indicate faster cash collection."
+            },
+            "Inventory Turnover Ratio": {
+                "Category": "Efficiency",
+                "Equation": "Cost of Goods Sold / Inventories",
+                "Definition": "Measures how many times inventory stock is sold, replaced, and cycled throughout a fiscal year."
+            },
+            "Days Inventory Outstanding (DIO)": {
+                "Category": "Efficiency",
+                "Equation": "(Inventories * 365) / Cost of Goods Sold",
+                "Definition": "Average duration in days that manufactured goods remain in inventory before being sold to customers."
+            },
+            "Gross Profit Margin": {
+                "Category": "Profitability",
+                "Equation": "Gross Profit / Total Revenues",
+                "Definition": "Assesses core production efficiency and pricing power after direct manufacturing costs (COGS), before operating overhead."
+            },
+            "Operating Profit Margin": {
+                "Category": "Profitability",
+                "Equation": "Operating Income (EBIT) / Total Revenues",
+                "Definition": "Reflects operating profitability after deducting cost of sales, SG&A, and R&D expenses from total revenues."
+            },
+            "Net Profit Margin": {
+                "Category": "Profitability",
+                "Equation": "Net Income / Total Revenues",
+                "Definition": "Measures bottom-line profitability, indicating percentage of revenue converted into net profit after all expenses & taxes."
+            },
+            "Return on Assets (ROA)": {
+                "Category": "Profitability",
+                "Equation": "Net Income / Total Assets",
+                "Definition": "Assesses management effectiveness in utilizing capital assets to generate net earnings."
+            },
+            "Return on Equity (ROE)": {
+                "Category": "Profitability",
+                "Equation": "Net Income / Stockholders' Equity",
+                "Definition": "Benchmark metric evaluating shareholder wealth creation and net return on equity capital invested by shareholders."
+            }
+        };
+
         function renderRatiosTable() {
             const ratios = window.FINANCIAL_DATA[currentTicker].sheets['Financial Ratios'];
             const filterInput = (document.getElementById('ratio-search-input').value || '').toLowerCase().trim();
             const tbody = document.getElementById('ratios-tbody');
+            const defTbody = document.getElementById('ratio-definitions-tbody');
             tbody.innerHTML = '';
+            if (defTbody) defTbody.innerHTML = '';
 
             ratios.forEach(r => {
                 const metric = r['Ratio / Metric'] || '';
                 const category = r['Category'] || '';
-                const formula = r['Formula / Definition'] || '—';
                 const fmt = r['Format'] || 'multiplier';
+                const meta = RATIO_GLOSSARY[metric] || RATIO_GLOSSARY[metric.split(' (')[0]] || {
+                    Category: category,
+                    Equation: r['Formula / Definition'] || '—',
+                    Definition: 'Standard corporate financial performance indicator.'
+                };
 
                 // Category filter
                 if (currentRatioCategory !== 'All Categories' && category.toLowerCase() !== currentRatioCategory.toLowerCase()) {
                     return;
                 }
                 // Text search filter
-                if (filterInput && !metric.toLowerCase().includes(filterInput) && !formula.toLowerCase().includes(filterInput)) {
+                if (filterInput && !metric.toLowerCase().includes(filterInput) && !meta.Equation.toLowerCase().includes(filterInput)) {
                     return;
                 }
 
@@ -839,10 +967,10 @@
                 if (category === 'Efficiency') catBadge = 'bg-purple-50 text-purple-700 border border-purple-200';
                 if (category === 'Profitability') catBadge = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
 
+                // 1. Render Numbers Row (No Formula Column)
                 const tr = document.createElement('tr');
                 let html = `<td class="font-bold text-slate-800">${metric}</td>`;
                 html += `<td><span class="text-xs px-2.5 py-0.5 rounded-full font-bold ${catBadge}">${category}</span></td>`;
-                html += `<td class="text-xs text-slate-500 font-mono text-left">${formula}</td>`;
 
                 for (let yr = 2016; yr <= 2025; yr++) {
                     const val = r[yr.toString()];
@@ -850,6 +978,18 @@
                 }
                 tr.innerHTML = html;
                 tbody.appendChild(tr);
+
+                // 2. Render Definition & Equation Row in the separate section
+                if (defTbody) {
+                    const defTr = document.createElement('tr');
+                    defTr.innerHTML = `
+                        <td class="font-semibold text-slate-800">${metric}</td>
+                        <td><span class="text-xs px-2.5 py-0.5 rounded-full font-bold ${catBadge}">${category}</span></td>
+                        <td class="text-xs text-blue-700 font-mono font-medium">${meta.Equation}</td>
+                        <td class="text-xs text-slate-600 leading-relaxed">${meta.Definition}</td>
+                    `;
+                    defTbody.appendChild(defTr);
+                }
             });
         }
 
