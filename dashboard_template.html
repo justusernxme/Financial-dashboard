@@ -233,6 +233,7 @@
                 <button onclick="switchTab('statements')" id="tab-statements" class="tab-btn">📑 Financial Statements</button>
                 <button onclick="switchTab('sentiment')" id="tab-sentiment" class="tab-btn">🧠 MD&A Sentiment Analysis</button>
                 <button onclick="switchTab('stock')" id="tab-stock" class="tab-btn">📈 Stock Price History</button>
+                <button onclick="switchTab('comparison')" id="tab-comparison" class="tab-btn">⚖️ Company Comparison</button>
             </div>
         </div>
 
@@ -429,6 +430,65 @@
             </div>
         </div>
 
+        <!-- Tab 6: Company Comparison Content -->
+        <div id="content-comparison" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-5">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800">⚖️ Head-to-Head Company Comparison</h2>
+                        <p class="text-xs text-slate-500">Benchmark 10-year stock returns, revenue, margins, and ratios between any two companies.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-bold text-slate-600">Company A:</span>
+                            <select id="comp-select-a" onchange="renderComparisonTab()" class="text-xs border border-slate-300 rounded px-2.5 py-1.5 bg-slate-50 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600"></select>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-bold text-slate-600">Company B:</span>
+                            <select id="comp-select-b" onchange="renderComparisonTab()" class="text-xs border border-slate-300 rounded px-2.5 py-1.5 bg-slate-50 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison KPI Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5" id="comp-kpi-grid"></div>
+
+                <!-- Comparison Chart -->
+                <div class="space-y-2 pt-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-800">10-Year Cumulative Stock Return (%) Benchmark (2016–2025)</h3>
+                        <span class="text-xs text-slate-500">Normalized % return indexed to FY2016 baseline</span>
+                    </div>
+                    <div class="h-80 w-full">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Comparison Table -->
+                <div class="space-y-2 pt-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-800">Head-to-Head Ratio & Metric Variance Table</h3>
+                        <span class="text-xs text-slate-500">FY2025 Performance Showdown</span>
+                    </div>
+                    <div class="table-container shadow-sm">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Ratio / Metric</th>
+                                    <th>Category</th>
+                                    <th id="comp-th-a">Company A</th>
+                                    <th id="comp-th-b">Company B</th>
+                                    <th>Variance (A - B)</th>
+                                    <th>Advantage Leader</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comp-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <div class="border-t border-slate-200 pt-6 pb-12 text-center text-xs text-slate-500 space-y-1">
             <p><b>Enterprise Financial Intelligence Platform</b> &bull; Audited SEC Form 10-K Data (FY2016 – FY2025)</p>
@@ -453,6 +513,7 @@
         let dualAxisChartInstance = null;
         let sentimentChartInstance = null;
         let stockChartInstance = null;
+        let comparisonChartInstance = null;
 
         const HEADER_LABELS = [
             'CURRENT ASSETS', 'NON-CURRENT ASSETS', 'CURRENT LIABILITIES',
@@ -657,7 +718,7 @@
 
         function switchTab(tabId) {
             currentTab = tabId;
-            const tabs = ['executive', 'ratios', 'statements', 'sentiment', 'stock'];
+            const tabs = ['executive', 'ratios', 'statements', 'sentiment', 'stock', 'comparison'];
             tabs.forEach(t => {
                 const btn = document.getElementById(`tab-${t}`);
                 const content = document.getElementById(`content-${t}`);
@@ -674,6 +735,7 @@
             if (tabId === 'executive') renderDualAxisChart();
             if (tabId === 'sentiment') renderSentimentChart();
             if (tabId === 'stock') renderStockChart();
+            if (tabId === 'comparison') renderComparisonTab();
         }
 
         function switchStatement(stmtName) {
@@ -1377,6 +1439,229 @@
             });
         }
 
+        function renderComparisonTab() {
+            const selectA = document.getElementById('comp-select-a');
+            const selectB = document.getElementById('comp-select-b');
+            const availableTickers = Object.keys(window.FINANCIAL_DATA);
+
+            // Populate selectors if empty
+            if (selectA.options.length === 0) {
+                availableTickers.forEach(t => {
+                    const optA = document.createElement('option');
+                    optA.value = t;
+                    optA.textContent = t;
+                    selectA.appendChild(optA);
+
+                    const optB = document.createElement('option');
+                    optB.value = t;
+                    optB.textContent = t;
+                    selectB.appendChild(optB);
+                });
+                selectA.value = currentTicker || 'AAPL';
+                selectB.value = (currentTicker === 'MSFT' ? 'AAPL' : 'MSFT') || availableTickers[1] || availableTickers[0];
+            }
+
+            const tickA = selectA.value;
+            const tickB = selectB.value;
+
+            document.getElementById('comp-th-a').textContent = `${tickA} (FY25)`;
+            document.getElementById('comp-th-b').textContent = `${tickB} (FY25)`;
+
+            const dataA = window.FINANCIAL_DATA[tickA];
+            const dataB = window.FINANCIAL_DATA[tickB];
+            if (!dataA || !dataB) return;
+
+            const sumA = dataA.sheets['Executive Summary'] || [];
+            const sumB = dataB.sheets['Executive Summary'] || [];
+            const lastA = sumA[sumA.length - 1] || {};
+            const lastB = sumB[sumB.length - 1] || {};
+            const firstA = sumA[0] || {};
+            const firstB = sumB[0] || {};
+
+            const p0_a = firstA['Stock Price ($)'] || 1.0;
+            const p10_a = lastA['Stock Price ($)'] || 0.0;
+            const retA = ((p10_a - p0_a) / p0_a) * 100.0;
+
+            const p0_b = firstB['Stock Price ($)'] || 1.0;
+            const p10_b = lastB['Stock Price ($)'] || 0.0;
+            const retB = ((p10_b - p0_b) / p0_b) * 100.0;
+
+            const revA = lastA['Revenue ($B)'] || (lastA['Total Net Sales / Revenue'] ? (lastA['Total Net Sales / Revenue'] / 1000) : 0);
+            const revB = lastB['Revenue ($B)'] || (lastB['Total Net Sales / Revenue'] ? (lastB['Total Net Sales / Revenue'] / 1000) : 0);
+            const niA = lastA['Net Income ($B)'] || (lastA['Net Income'] ? (lastA['Net Income'] / 1000) : 0);
+            const niB = lastB['Net Income ($B)'] || (lastB['Net Income'] ? (lastB['Net Income'] / 1000) : 0);
+            const roeA = lastA['Return on Equity (%)'] || 0;
+            const roeB = lastB['Return on Equity (%)'] || 0;
+
+            const winRet = retA >= retB ? tickA : tickB;
+            const winRev = revA >= revB ? tickA : tickB;
+            const winNi = niA >= niB ? tickA : tickB;
+            const winRoe = roeA >= roeB ? tickA : tickB;
+
+            // Render KPI cards
+            const kpiGrid = document.getElementById('comp-kpi-grid');
+            kpiGrid.innerHTML = `
+                <div class="kpi-card">
+                    <div class="kpi-title">10-Yr Stock Return</div>
+                    <div class="flex justify-between text-xs mt-1 font-semibold text-slate-800">
+                        <span>${tickA}: ${retA.toFixed(1)}%</span>
+                        <span>${tickB}: ${retB.toFixed(1)}%</span>
+                    </div>
+                    <div class="kpi-delta ${retA >= retB ? 'delta-pos' : 'delta-neg'} mt-1.5 font-bold">
+                        🏆 ${winRet} (${Math.abs(retA - retB).toFixed(1)}% lead)
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">FY2025 Annual Revenue</div>
+                    <div class="flex justify-between text-xs mt-1 font-semibold text-slate-800">
+                        <span>${tickA}: $${revA.toFixed(1)}B</span>
+                        <span>${tickB}: $${revB.toFixed(1)}B</span>
+                    </div>
+                    <div class="kpi-delta ${revA >= revB ? 'delta-pos' : 'delta-neg'} mt-1.5 font-bold">
+                        🏆 ${winRev} ($${Math.abs(revA - revB).toFixed(1)}B lead)
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">FY2025 Net Income</div>
+                    <div class="flex justify-between text-xs mt-1 font-semibold text-slate-800">
+                        <span>${tickA}: $${niA.toFixed(1)}B</span>
+                        <span>${tickB}: $${niB.toFixed(1)}B</span>
+                    </div>
+                    <div class="kpi-delta ${niA >= niB ? 'delta-pos' : 'delta-neg'} mt-1.5 font-bold">
+                        🏆 ${winNi} ($${Math.abs(niA - niB).toFixed(1)}B lead)
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Return on Equity (ROE)</div>
+                    <div class="flex justify-between text-xs mt-1 font-semibold text-slate-800">
+                        <span>${tickA}: ${roeA.toFixed(1)}%</span>
+                        <span>${tickB}: ${roeB.toFixed(1)}%</span>
+                    </div>
+                    <div class="kpi-delta ${roeA >= roeB ? 'delta-pos' : 'delta-neg'} mt-1.5 font-bold">
+                        🏆 ${winRoe} (${Math.abs(roeA - roeB).toFixed(1)}% lead)
+                    </div>
+                </div>
+            `;
+
+            // Render Comparison Chart (Normalized 10-Yr Cumulative Returns)
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            const labels = sumA.map(r => r['Fiscal Year'] || r['year']);
+            const cumDataA = sumA.map(r => {
+                const p = r['Stock Price ($)'] || 0;
+                return p0_a > 0 ? (((p - p0_a) / p0_a) * 100) : 0;
+            });
+            const cumDataB = sumB.map(r => {
+                const p = r['Stock Price ($)'] || 0;
+                return p0_b > 0 ? (((p - p0_b) / p0_b) * 100) : 0;
+            });
+
+            if (comparisonChartInstance) {
+                comparisonChartInstance.destroy();
+            }
+
+            comparisonChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: `${tickA} Cumulative Return (%)`,
+                            data: cumDataA,
+                            borderColor: '#1F4E79',
+                            backgroundColor: 'rgba(31, 78, 121, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#1F4E79',
+                            tension: 0.2
+                        },
+                        {
+                            label: `${tickB} Cumulative Return (%)`,
+                            data: cumDataB,
+                            borderColor: '#C00000',
+                            backgroundColor: 'rgba(192, 0, 0, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#C00000',
+                            tension: 0.2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            ticks: { callback: v => (v >= 0 ? '+' : '') + v + '%' },
+                            grid: { color: '#E2E8F0' }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}%`
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Render Comparison Table for FY2025 Ratios
+            const ratiosA = dataA.sheets['Financial Ratios'] || [];
+            const ratiosB = dataB.sheets['Financial Ratios'] || [];
+            const ratiosMapB = {};
+            ratiosB.forEach(r => { ratiosMapB[r['Ratio / Metric']] = r; });
+
+            const compTbody = document.getElementById('comp-tbody');
+            compTbody.innerHTML = '';
+
+            ratiosA.forEach(rA => {
+                const metric = rA['Ratio / Metric'];
+                const cat = rA['Category'] || 'General';
+                const fmt = rA['Format'] || 'multiplier';
+                const rB = ratiosMapB[metric] || {};
+
+                const valA = rA['2025'];
+                const valB = rB['2025'];
+                if (valA === undefined || valB === undefined) return;
+
+                const numA = typeof valA === 'number' ? valA : parseFloat(valA) || 0;
+                const numB = typeof valB === 'number' ? valB : parseFloat(valB) || 0;
+                const diff = numA - numB;
+
+                let strA = formatNumberCell(numA, metric, fmt);
+                let strB = formatNumberCell(numB, metric, fmt);
+                let strDiff = fmt === 'percent' ? `${diff >= 0 ? '+' : ''}${diff.toFixed(2)}%` : `${diff >= 0 ? '+' : ''}${diff.toFixed(2)}x`;
+
+                let leader = 'Equal';
+                if (Math.abs(diff) > 0.001) {
+                    if (metric.includes('Days') || metric.includes('Debt')) {
+                        leader = numA < numB ? tickA : tickB;
+                    } else {
+                        leader = numA > numB ? tickA : tickB;
+                    }
+                }
+
+                let catBadge = 'bg-slate-100 text-slate-700';
+                if (cat === 'Liquidity') catBadge = 'bg-blue-50 text-blue-700 border border-blue-200';
+                if (cat === 'Solvency') catBadge = 'bg-amber-50 text-amber-700 border border-amber-200';
+                if (cat === 'Efficiency') catBadge = 'bg-purple-50 text-purple-700 border border-purple-200';
+                if (cat === 'Profitability') catBadge = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="font-semibold text-slate-800">${metric}</td>
+                    <td><span class="text-xs px-2.5 py-0.5 rounded-full font-bold ${catBadge}">${cat}</span></td>
+                    <td class="font-bold text-slate-900">${strA}</td>
+                    <td class="font-bold text-slate-900">${strB}</td>
+                    <td class="font-mono text-xs ${diff >= 0 ? 'text-emerald-700 font-semibold' : 'text-rose-700 font-semibold'}">${strDiff}</td>
+                    <td class="font-bold text-xs ${leader !== 'Equal' ? 'text-blue-900' : 'text-slate-500'}">${leader !== 'Equal' ? '🏆 ' + leader : 'Equal'}</td>
+                `;
+                compTbody.appendChild(tr);
+            });
+        }
+
         // Initialize application on load
         window.addEventListener('DOMContentLoaded', () => {
             switchTicker('AAPL');
@@ -1384,4 +1669,3 @@
     </script>
 </body>
 </html>
-"""

@@ -2140,6 +2140,555 @@ def render_stock_price_tab(stock_df: pd.DataFrame, ticker: str) -> None:
         st.altair_chart(chart, use_container_width=True)
 
 
+def render_company_comparison_tab(
+    default_ticker_a: str,
+    default_ticker_b: str = "MSFT",
+) -> None:
+    """Render head-to-head comparison between any two companies.
+
+    Allows benchmarking 10-year stock returns, revenue, margins, ratios,
+    and MD&A sentiment between selected corporate entities.
+
+    Args:
+        default_ticker_a (str): Primary baseline company ticker.
+        default_ticker_b (str): Target comparison company ticker.
+    """
+    st.markdown("##### ⚖️ Head-to-Head Company Comparison")
+    st.caption(
+        "Benchmark 10-year financial performance, stock returns, "
+        "profitability ratios, and MD&A sentiment between any two companies."
+    )
+
+    preset_tickers = [
+        "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA"
+    ]
+    col_sel_a, col_sel_b = st.columns(2)
+
+    with col_sel_a:
+        st.markdown("**Company A (Baseline)**")
+        c_p_a, c_t_a = st.columns([1.1, 1.2])
+        with c_p_a:
+            idx_a = (
+                preset_tickers.index(default_ticker_a)
+                if default_ticker_a in preset_tickers
+                else 0
+            )
+            sel_a = st.selectbox(
+                "Preset A",
+                options=preset_tickers,
+                index=idx_a,
+                key="cmp_sel_a",
+                label_visibility="collapsed",
+            )
+        with c_t_a:
+            txt_a = st.text_input(
+                "Custom A",
+                placeholder="Or Custom (e.g. AMD)",
+                key="cmp_txt_a",
+                label_visibility="collapsed",
+            ).strip().upper()
+        ticker_a = txt_a if txt_a else sel_a
+
+    with col_sel_b:
+        st.markdown("**Company B (Comparison Target)**")
+        c_p_b, c_t_b = st.columns([1.1, 1.2])
+        with c_p_b:
+            fallback_b = (
+                default_ticker_b
+                if default_ticker_b != ticker_a
+                else ("MSFT" if ticker_a != "MSFT" else "AAPL")
+            )
+            idx_b = (
+                preset_tickers.index(fallback_b)
+                if fallback_b in preset_tickers
+                else (1 if idx_a != 1 else 0)
+            )
+            sel_b = st.selectbox(
+                "Preset B",
+                options=preset_tickers,
+                index=idx_b,
+                key="cmp_sel_b",
+                label_visibility="collapsed",
+            )
+        with c_t_b:
+            txt_b = st.text_input(
+                "Custom B",
+                placeholder="Or Custom (e.g. INTC)",
+                key="cmp_txt_b",
+                label_visibility="collapsed",
+            ).strip().upper()
+        ticker_b = txt_b if txt_b else sel_b
+
+    # Clean ticker symbols
+    ticker_a = "".join(
+        c for c in ticker_a if c.isalnum() or c in (".", "-")
+    ).upper() or "AAPL"
+    ticker_b = "".join(
+        c for c in ticker_b if c.isalnum() or c in (".", "-")
+    ).upper() or "MSFT"
+
+    if ticker_a == ticker_b:
+        st.info(
+            f"ℹ️ Both selectors are set to **{ticker_a}**. "
+            "Choose a different Company B to view cross-company variances."
+        )
+
+    # Load data bundles and metadata for both companies
+    bundle_a = load_company_data_bundle(ticker_a)
+    bundle_b = load_company_data_bundle(ticker_b)
+    meta_a = get_company_metadata(ticker_a)
+    meta_b = get_company_metadata(ticker_b)
+
+    sum_a = bundle_a.get("Executive Summary", pd.DataFrame())
+    sum_b = bundle_b.get("Executive Summary", pd.DataFrame())
+
+    # Executive Profile Banners
+    c_hdr_a, c_hdr_b = st.columns(2)
+    with c_hdr_a:
+        st.markdown(
+            f'<div class="header-banner" style="padding: 0.85rem 1.1rem; '
+            f'margin-bottom: 0.8rem; background: linear-gradient(135deg, '
+            f'#0F172A 0%, #1E3A8A 100%);">'
+            f'<h4 style="margin: 0; color: #FFFFFF; font-size: 1.15rem;">'
+            f'{meta_a.get("icon", "🏢")} {meta_a.get("name", ticker_a)} '
+            f'({ticker_a})</h4>'
+            f'<p style="margin: 0.25rem 0 0 0; color: #CBD5E1; '
+            f'font-size: 0.82rem;">{meta_a.get("sector", "")} &bull; '
+            f'{meta_a.get("industry", "")} &bull; '
+            f'<b>{meta_a.get("exchange", "")}</b></p>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    with c_hdr_b:
+        st.markdown(
+            f'<div class="header-banner" style="padding: 0.85rem 1.1rem; '
+            f'margin-bottom: 0.8rem; background: linear-gradient(135deg, '
+            f'#1E1B4B 0%, #3730A3 100%);">'
+            f'<h4 style="margin: 0; color: #FFFFFF; font-size: 1.15rem;">'
+            f'{meta_b.get("icon", "🏢")} {meta_b.get("name", ticker_b)} '
+            f'({ticker_b})</h4>'
+            f'<p style="margin: 0.25rem 0 0 0; color: #CBD5E1; '
+            f'font-size: 0.82rem;">{meta_b.get("sector", "")} &bull; '
+            f'{meta_b.get("industry", "")} &bull; '
+            f'<b>{meta_b.get("exchange", "")}</b></p>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    # Extract Latest Metrics (FY2025)
+    last_a = sum_a.iloc[-1] if not sum_a.empty else {}
+    last_b = sum_b.iloc[-1] if not sum_b.empty else {}
+    first_a = sum_a.iloc[0] if not sum_a.empty else {}
+    first_b = sum_b.iloc[0] if not sum_b.empty else {}
+
+    p_a = safe_float(last_a.get("Stock Price ($)", 0.0))
+    p_b = safe_float(last_b.get("Stock Price ($)", 0.0))
+    p0_a = safe_float(first_a.get("Stock Price ($)", 1.0))
+    p0_b = safe_float(first_b.get("Stock Price ($)", 1.0))
+
+    ret_10y_a = ((p_a - p0_a) / p0_a * 100.0) if p0_a > 0 else 0.0
+    ret_10y_b = ((p_b - p0_b) / p0_b * 100.0) if p0_b > 0 else 0.0
+
+    rev_a = safe_float(last_a.get("Revenue ($B)", 0.0))
+    rev_b = safe_float(last_b.get("Revenue ($B)", 0.0))
+    ni_a = safe_float(last_a.get("Net Income ($B)", 0.0))
+    ni_b = safe_float(last_b.get("Net Income ($B)", 0.0))
+
+    opm_a = safe_float(last_a.get("Operating Margin (%)", 0.0))
+    opm_b = safe_float(last_b.get("Operating Margin (%)", 0.0))
+    roe_a = safe_float(last_a.get("Return on Equity (%)", 0.0))
+    roe_b = safe_float(last_b.get("Return on Equity (%)", 0.0))
+
+    winner_ret = ticker_a if ret_10y_a >= ret_10y_b else ticker_b
+    winner_rev = ticker_a if rev_a >= rev_b else ticker_b
+    winner_ni = ticker_a if ni_a >= ni_b else ticker_b
+    winner_roe = ticker_a if roe_a >= roe_b else ticker_b
+
+    # Head-to-Head KPI Comparison Showdown
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    with kpi1:
+        st.markdown(
+            f'<div class="kpi-card">'
+            f'<div class="kpi-title">10-Yr Stock Return</div>'
+            f'<div style="display:flex; justify-content:space-between; '
+            f'margin-top:4px; font-size:0.88rem;">'
+            f'<div><b>{ticker_a}</b>: {ret_10y_a:+.1f}%</div>'
+            f'<div><b>{ticker_b}</b>: {ret_10y_b:+.1f}%</div>'
+            f'</div>'
+            f'<div class="kpi-delta '
+            f'{"delta-pos" if ret_10y_a >= ret_10y_b else "delta-neg"}">'
+            f'🏆 {winner_ret} ({abs(ret_10y_a - ret_10y_b):.1f}% lead)'
+            f'</div></div>',
+            unsafe_allow_html=True,
+        )
+    with kpi2:
+        st.markdown(
+            f'<div class="kpi-card">'
+            f'<div class="kpi-title">FY2025 Annual Revenue</div>'
+            f'<div style="display:flex; justify-content:space-between; '
+            f'margin-top:4px; font-size:0.88rem;">'
+            f'<div><b>{ticker_a}</b>: ${rev_a:,.1f}B</div>'
+            f'<div><b>{ticker_b}</b>: ${rev_b:,.1f}B</div>'
+            f'</div>'
+            f'<div class="kpi-delta '
+            f'{"delta-pos" if rev_a >= rev_b else "delta-neg"}">'
+            f'🏆 {winner_rev} (${abs(rev_a - rev_b):,.1f}B lead)'
+            f'</div></div>',
+            unsafe_allow_html=True,
+        )
+    with kpi3:
+        st.markdown(
+            f'<div class="kpi-card">'
+            f'<div class="kpi-title">FY2025 Net Income</div>'
+            f'<div style="display:flex; justify-content:space-between; '
+            f'margin-top:4px; font-size:0.88rem;">'
+            f'<div><b>{ticker_a}</b>: ${ni_a:,.1f}B</div>'
+            f'<div><b>{ticker_b}</b>: ${ni_b:,.1f}B</div>'
+            f'</div>'
+            f'<div class="kpi-delta '
+            f'{"delta-pos" if ni_a >= ni_b else "delta-neg"}">'
+            f'🏆 {winner_ni} (${abs(ni_a - ni_b):,.1f}B lead)'
+            f'</div></div>',
+            unsafe_allow_html=True,
+        )
+    with kpi4:
+        st.markdown(
+            f'<div class="kpi-card">'
+            f'<div class="kpi-title">Return on Equity (ROE)</div>'
+            f'<div style="display:flex; justify-content:space-between; '
+            f'margin-top:4px; font-size:0.88rem;">'
+            f'<div><b>{ticker_a}</b>: {roe_a:.1f}%</div>'
+            f'<div><b>{ticker_b}</b>: {roe_b:.1f}%</div>'
+            f'</div>'
+            f'<div class="kpi-delta '
+            f'{"delta-pos" if roe_a >= roe_b else "delta-neg"}">'
+            f'🏆 {winner_roe} ({abs(roe_a - roe_b):.1f}% lead)'
+            f'</div></div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+
+    # Comparative Visualizations
+    st.markdown("##### 📈 Comparative Historical Visualizations (2016–2025)")
+    v_tab1, v_tab2, v_tab3, v_tab4 = st.tabs(
+        [
+            "📈 10-Yr Cumulative Return",
+            "📊 Revenue & Net Income Trajectory",
+            "📐 Financial Ratio Comparison",
+            "🧠 MD&A Sentiment Trajectory",
+        ]
+    )
+
+    with v_tab1:
+        # Normalized stock price performance indexed to 0% in FY2016
+        ret_rows = []
+        for _, r in sum_a.iterrows():
+            yr = str(r["Fiscal Year"])
+            p = safe_float(r["Stock Price ($)"])
+            cum = ((p - p0_a) / p0_a * 100.0) if p0_a > 0 else 0.0
+            ret_rows.append(
+                {
+                    "Fiscal Year": yr,
+                    "Company": f"{ticker_a} ({meta_a.get('name', ticker_a)})",
+                    "Cumulative Return (%)": round(cum, 2),
+                    "Price ($)": p,
+                }
+            )
+        for _, r in sum_b.iterrows():
+            yr = str(r["Fiscal Year"])
+            p = safe_float(r["Stock Price ($)"])
+            cum = ((p - p0_b) / p0_b * 100.0) if p0_b > 0 else 0.0
+            ret_rows.append(
+                {
+                    "Fiscal Year": yr,
+                    "Company": f"{ticker_b} ({meta_b.get('name', ticker_b)})",
+                    "Cumulative Return (%)": round(cum, 2),
+                    "Price ($)": p,
+                }
+            )
+        if ret_rows:
+            df_ret = pd.DataFrame(ret_rows)
+            chart_ret = (
+                alt.Chart(df_ret)
+                .mark_line(point=True, strokeWidth=3)
+                .encode(
+                    x=alt.X("Fiscal Year:O", title="Fiscal Year"),
+                    y=alt.Y(
+                        "Cumulative Return (%):Q",
+                        title="Normalized Cumulative Return (%)",
+                    ),
+                    color=alt.Color(
+                        "Company:N",
+                        scale=alt.Scale(range=[COLOR_NAVY, COLOR_CRIMSON]),
+                    ),
+                    tooltip=[
+                        "Fiscal Year",
+                        "Company",
+                        alt.Tooltip("Cumulative Return (%):Q", format="+.1f"),
+                        alt.Tooltip("Price ($):Q", format="$,.2f"),
+                    ],
+                )
+                .properties(height=340)
+            )
+            st.altair_chart(chart_ret, use_container_width=True)
+
+    with v_tab2:
+        rev_rows = []
+        for _, r in sum_a.iterrows():
+            yr = str(r["Fiscal Year"])
+            rev_rows.append(
+                {
+                    "Fiscal Year": yr,
+                    "Series": f"{ticker_a} Revenue",
+                    "Amount ($B)": safe_float(r["Revenue ($B)"]),
+                }
+            )
+            rev_rows.append(
+                {
+                    "Fiscal Year": yr,
+                    "Series": f"{ticker_a} Net Income",
+                    "Amount ($B)": safe_float(r["Net Income ($B)"]),
+                }
+            )
+        for _, r in sum_b.iterrows():
+            yr = str(r["Fiscal Year"])
+            rev_rows.append(
+                {
+                    "Fiscal Year": yr,
+                    "Series": f"{ticker_b} Revenue",
+                    "Amount ($B)": safe_float(r["Revenue ($B)"]),
+                }
+            )
+            rev_rows.append(
+                {
+                    "Fiscal Year": yr,
+                    "Series": f"{ticker_b} Net Income",
+                    "Amount ($B)": safe_float(r["Net Income ($B)"]),
+                }
+            )
+        if rev_rows:
+            df_rev = pd.DataFrame(rev_rows)
+            chart_rev = (
+                alt.Chart(df_rev)
+                .mark_line(point=True, strokeWidth=2.5)
+                .encode(
+                    x=alt.X("Fiscal Year:O", title="Fiscal Year"),
+                    y=alt.Y("Amount ($B):Q", title="Amount ($ Billions)"),
+                    color=alt.Color("Series:N", title="Metric"),
+                    tooltip=[
+                        "Fiscal Year",
+                        "Series",
+                        alt.Tooltip("Amount ($B):Q", format="$,.2f"),
+                    ],
+                )
+                .properties(height=340)
+            )
+            st.altair_chart(chart_rev, use_container_width=True)
+
+    with v_tab3:
+        ratios_a = bundle_a.get("Financial Ratios", pd.DataFrame())
+        ratios_b = bundle_b.get("Financial Ratios", pd.DataFrame())
+        all_metrics = sorted(
+            list(
+                set(
+                    ratios_a["Ratio / Metric"].dropna().tolist()
+                    + ratios_b["Ratio / Metric"].dropna().tolist()
+                )
+            )
+        )
+        if not all_metrics:
+            all_metrics = ["Current Ratio", "Operating Profit Margin"]
+        def_m = (
+            "Operating Profit Margin"
+            if "Operating Profit Margin" in all_metrics
+            else all_metrics[0]
+        )
+        chosen_ratio = st.selectbox(
+            "Select Financial Ratio to Benchmark",
+            all_metrics,
+            index=all_metrics.index(def_m),
+            key="cmp_ratio_choice",
+        )
+        sub_a = ratios_a[ratios_a["Ratio / Metric"] == chosen_ratio]
+        sub_b = ratios_b[ratios_b["Ratio / Metric"] == chosen_ratio]
+        year_cols = [str(2016 + i) for i in range(10)]
+        ratio_chart_rows = []
+        if not sub_a.empty:
+            for y in year_cols:
+                ratio_chart_rows.append(
+                    {
+                        "Fiscal Year": y,
+                        "Company": ticker_a,
+                        "Value": safe_float(sub_a[y].iloc[0]),
+                    }
+                )
+        if not sub_b.empty:
+            for y in year_cols:
+                ratio_chart_rows.append(
+                    {
+                        "Fiscal Year": y,
+                        "Company": ticker_b,
+                        "Value": safe_float(sub_b[y].iloc[0]),
+                    }
+                )
+        if ratio_chart_rows:
+            df_rc = pd.DataFrame(ratio_chart_rows)
+            chart_r = (
+                alt.Chart(df_rc)
+                .mark_line(point=True, strokeWidth=3)
+                .encode(
+                    x=alt.X("Fiscal Year:O", title="Fiscal Year"),
+                    y=alt.Y("Value:Q", title=chosen_ratio),
+                    color=alt.Color(
+                        "Company:N",
+                        scale=alt.Scale(range=[COLOR_NAVY, COLOR_CRIMSON]),
+                    ),
+                    tooltip=[
+                        "Fiscal Year",
+                        "Company",
+                        alt.Tooltip("Value:Q", format=".2f"),
+                    ],
+                )
+                .properties(height=340)
+            )
+            st.altair_chart(chart_r, use_container_width=True)
+
+    with v_tab4:
+        pn_rows = []
+        for _, r in sum_a.iterrows():
+            pn_rows.append(
+                {
+                    "Fiscal Year": str(r["Fiscal Year"]),
+                    "Company": ticker_a,
+                    "P/N Ratio": safe_float(r["MD&A Sentiment P/N"]),
+                }
+            )
+        for _, r in sum_b.iterrows():
+            pn_rows.append(
+                {
+                    "Fiscal Year": str(r["Fiscal Year"]),
+                    "Company": ticker_b,
+                    "P/N Ratio": safe_float(r["MD&A Sentiment P/N"]),
+                }
+            )
+        if pn_rows:
+            df_pn = pd.DataFrame(pn_rows)
+            chart_pn = (
+                alt.Chart(df_pn)
+                .mark_bar(opacity=0.85)
+                .encode(
+                    x=alt.X("Fiscal Year:O", title="Fiscal Year"),
+                    y=alt.Y(
+                        "P/N Ratio:Q",
+                        title="MD&A Sentiment P/N Ratio",
+                    ),
+                    color=alt.Color(
+                        "Company:N",
+                        scale=alt.Scale(range=[COLOR_NAVY, COLOR_CRIMSON]),
+                    ),
+                    xOffset="Company:N",
+                    tooltip=["Fiscal Year", "Company", "P/N Ratio:Q"],
+                )
+                .properties(height=340)
+            )
+            st.altair_chart(chart_pn, use_container_width=True)
+
+    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+
+    # Detailed Side-by-Side Data Table Comparison
+    st.markdown("##### 📋 Head-to-Head Ratio & Metric Variance Table")
+    c_tbl_cat, c_tbl_yr = st.columns([2, 1])
+    with c_tbl_yr:
+        comp_yr = st.selectbox(
+            "Comparison Fiscal Year",
+            [str(2016 + i) for i in reversed(range(10))],
+            index=0,
+            key="cmp_table_year",
+        )
+    with c_tbl_cat:
+        cat_choices = [
+            "All Categories", "Liquidity", "Solvency",
+            "Efficiency", "Profitability"
+        ]
+        comp_cat = st.selectbox(
+            "Filter Category",
+            cat_choices,
+            index=0,
+            key="cmp_table_cat",
+        )
+
+    ratios_a = bundle_a.get("Financial Ratios", pd.DataFrame())
+    ratios_b = bundle_b.get("Financial Ratios", pd.DataFrame())
+
+    comparison_table_rows = []
+    # Merge on Ratio / Metric
+    if not ratios_a.empty and not ratios_b.empty:
+        merged = pd.merge(
+            ratios_a,
+            ratios_b,
+            on=["Ratio / Metric"],
+            suffixes=(f"_{ticker_a}", f"_{ticker_b}"),
+            how="outer",
+        )
+        for _, row in merged.iterrows():
+            r_name = str(row["Ratio / Metric"])
+            cat = (
+                str(row.get(f"Category_{ticker_a}") or "")
+                or str(row.get(f"Category_{ticker_b}") or "")
+                or "General"
+            )
+            if comp_cat != "All Categories" and cat != comp_cat:
+                continue
+            fmt = (
+                str(row.get(f"Format_{ticker_a}") or "")
+                or str(row.get(f"Format_{ticker_b}") or "")
+                or "multiplier"
+            )
+            v_a = safe_float(row.get(f"{comp_yr}_{ticker_a}"))
+            v_b = safe_float(row.get(f"{comp_yr}_{ticker_b}"))
+            delta = v_a - v_b
+
+            if fmt == "percent":
+                str_a = f"{v_a:.2f}%"
+                str_b = f"{v_b:.2f}%"
+                str_d = f"{delta:+.2f}%"
+            elif fmt == "days":
+                str_a = f"{v_a:.1f} d"
+                str_b = f"{v_b:.1f} d"
+                str_d = f"{delta:+.1f} d"
+            else:
+                str_a = f"{v_a:.2f}x"
+                str_b = f"{v_b:.2f}x"
+                str_d = f"{delta:+.2f}x"
+
+            leader = "Equal"
+            if abs(delta) > 0.001:
+                # Lower is better for Days metrics and Debt ratios
+                if "Days" in r_name or "Debt" in r_name:
+                    leader = ticker_a if v_a < v_b else ticker_b
+                else:
+                    leader = ticker_a if v_a > v_b else ticker_b
+
+            adv_badge = (
+                f"🏆 {leader}" if leader != "Equal" else "Equal"
+            )
+            comparison_table_rows.append(
+                {
+                    "Ratio / Metric": r_name,
+                    "Category": cat,
+                    f"{ticker_a} ({comp_yr})": str_a,
+                    f"{ticker_b} ({comp_yr})": str_b,
+                    "Variance (A - B)": str_d,
+                    "Advantage Leader": adv_badge,
+                }
+            )
+
+    if comparison_table_rows:
+        df_cmp_table = pd.DataFrame(comparison_table_rows)
+        st.dataframe(df_cmp_table, use_container_width=True, hide_index=True)
+
+
 # ---------------------------------------------------------------------------
 # Main Application Entrypoint
 # ---------------------------------------------------------------------------
@@ -2253,13 +2802,21 @@ def main() -> None:
     st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
 
     # Primary Multi-Tab Explorer View
-    tab_dash, tab_ratios, tab_stmts, tab_sent, tab_price = st.tabs(
+    (
+        tab_dash,
+        tab_ratios,
+        tab_stmts,
+        tab_sent,
+        tab_price,
+        tab_compare,
+    ) = st.tabs(
         [
             "📊 Executive Dashboard",
             "📐 Financial Ratios (10-Yr)",
             "📑 Financial Statements",
             "📝 MD&A Sentiment Analysis",
             "💹 Stock Price History",
+            "⚖️ Company Comparison",
         ]
     )
 
@@ -2280,6 +2837,9 @@ def main() -> None:
     with tab_price:
         stock_df = data_bundle.get("Stock Price", pd.DataFrame())
         render_stock_price_tab(stock_df, selected_ticker)
+
+    with tab_compare:
+        render_company_comparison_tab(selected_ticker)
 
 
 if __name__ == "__main__":

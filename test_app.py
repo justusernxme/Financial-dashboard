@@ -370,6 +370,44 @@ class TestStreamlitApp(unittest.TestCase):
             nvda_summary["Fiscal Year"].tolist(), expected_years
         )
 
+    def test_company_comparison_pipeline(self) -> None:
+        """Verify cross-company comparison data structures and merging."""
+        from app import load_company_data_bundle, safe_float
+
+        bundle_a = load_company_data_bundle("AAPL")
+        bundle_b = load_company_data_bundle("MSFT")
+
+        sum_a = bundle_a["Executive Summary"]
+        sum_b = bundle_b["Executive Summary"]
+        self.assertEqual(len(sum_a), 10)
+        self.assertEqual(len(sum_b), 10)
+
+        # 1. Test cumulative returns calculation for comparison
+        p0_a = safe_float(sum_a.iloc[0]["Stock Price ($)"])
+        p10_a = safe_float(sum_a.iloc[-1]["Stock Price ($)"])
+        ret_a = ((p10_a - p0_a) / p0_a) * 100.0
+
+        p0_b = safe_float(sum_b.iloc[0]["Stock Price ($)"])
+        p10_b = safe_float(sum_b.iloc[-1]["Stock Price ($)"])
+        ret_b = ((p10_b - p0_b) / p0_b) * 100.0
+
+        self.assertGreater(ret_a, 0.0)
+        self.assertGreater(ret_b, 0.0)
+
+        # 2. Test ratio merging across two companies
+        ratios_a = bundle_a["Financial Ratios"]
+        ratios_b = bundle_b["Financial Ratios"]
+
+        merged = pd.merge(
+            ratios_a,
+            ratios_b,
+            on=["Ratio / Metric"],
+            suffixes=("_AAPL", "_MSFT"),
+        )
+        self.assertFalse(merged.empty)
+        self.assertIn("2025_AAPL", merged.columns)
+        self.assertIn("2025_MSFT", merged.columns)
+
 
 if __name__ == "__main__":
     unittest.main()
