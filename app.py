@@ -1798,7 +1798,26 @@ def render_financial_ratios_tab(
         "ratio in the table above."
     )
 
-    glossary_rows = []
+    glossary_html_rows = []
+    cat_badge_styles = {
+        "Liquidity": (
+            "background-color: #EFF6FF; color: #1D4ED8; "
+            "border: 1px solid #BFDBFE;"
+        ),
+        "Solvency": (
+            "background-color: #FEF3C7; color: #B45309; "
+            "border: 1px solid #FDE68A;"
+        ),
+        "Efficiency": (
+            "background-color: #FAF5FF; color: #7E22CE; "
+            "border: 1px solid #E9D5FF;"
+        ),
+        "Profitability": (
+            "background-color: #ECFDF5; color: #047857; "
+            "border: 1px solid #A7F3D0;"
+        ),
+    }
+
     for _, r_row in filtered_ratios.iterrows():
         r_name = str(r_row["Ratio / Metric"]).strip()
         r_cat = str(r_row["Category"]).strip()
@@ -1815,17 +1834,65 @@ def render_financial_ratios_tab(
                 },
             ),
         )
-        glossary_rows.append(
-            {
-                "Ratio / Metric": r_name,
-                "Category": r_cat,
-                "Equation / Formula": meta["Equation"],
-                "Financial Definition & Interpretation": meta["Definition"],
-            }
+        b_style = cat_badge_styles.get(
+            r_cat,
+            "background-color: #F1F5F9; color: #475569; "
+            "border: 1px solid #E2E8F0;",
         )
 
-    glossary_df = pd.DataFrame(glossary_rows)
-    st.dataframe(glossary_df, use_container_width=True, hide_index=True)
+        glossary_html_rows.append(
+            '<tr style="border-bottom: 1px solid #F1F5F9;">'
+            f'<td style="padding: 10px 14px; font-weight: 600; '
+            f'color: #0F172A; vertical-align: top; width: 20%; '
+            f'white-space: normal;">{r_name}</td>'
+            f'<td style="padding: 10px 14px; vertical-align: top; '
+            f'width: 14%; white-space: normal;">'
+            f'<span style="padding: 3px 8px; border-radius: 9999px; '
+            f'font-size: 0.75rem; font-weight: 700; {b_style}">'
+            f'{r_cat}</span></td>'
+            f'<td style="padding: 10px 14px; vertical-align: top; '
+            f'width: 28%; white-space: normal; word-break: break-word;">'
+            f'<code style="font-family: monospace; font-size: 0.8rem; '
+            f'color: #1E40AF; background-color: #EFF6FF; padding: 2px 6px; '
+            f'border-radius: 4px; border: 1px solid #DBEAFE; '
+            f'display: inline-block;">{meta["Equation"]}</code></td>'
+            f'<td style="padding: 10px 14px; vertical-align: top; '
+            f'width: 38%; color: #334155; font-size: 0.85rem; '
+            f'line-height: 1.55; white-space: normal; '
+            f'word-break: break-word;">{meta["Definition"]}</td>'
+            '</tr>'
+        )
+
+    table_rows_str = "".join(glossary_html_rows)
+    guide_table_html = (
+        '<div style="overflow-x: auto; width: 100%; border: 1px solid '
+        '#E2E8F0; border-radius: 8px; background-color: #FFFFFF; '
+        'margin-bottom: 1.5rem;">'
+        '<table style="width: 100%; border-collapse: collapse; '
+        'text-align: left; font-family: -apple-system, BlinkMacSystemFont, '
+        'Segoe UI, Roboto, sans-serif;">'
+        '<thead>'
+        '<tr style="background-color: #F8FAFC; border-bottom: 2px '
+        'solid #E2E8F0;">'
+        '<th style="padding: 10px 14px; font-size: 0.8rem; font-weight: 700; '
+        'color: #475569; text-transform: uppercase; letter-spacing: 0.05em; '
+        'width: 20%;">Ratio / Metric</th>'
+        '<th style="padding: 10px 14px; font-size: 0.8rem; font-weight: 700; '
+        'color: #475569; text-transform: uppercase; letter-spacing: 0.05em; '
+        'width: 14%;">Category</th>'
+        '<th style="padding: 10px 14px; font-size: 0.8rem; font-weight: 700; '
+        'color: #475569; text-transform: uppercase; letter-spacing: 0.05em; '
+        'width: 28%;">Equation / Formula</th>'
+        '<th style="padding: 10px 14px; font-size: 0.8rem; font-weight: 700; '
+        'color: #475569; text-transform: uppercase; letter-spacing: 0.05em; '
+        'width: 38%;">Financial Definition & Interpretation</th>'
+        '</tr>'
+        '</thead>'
+        f'<tbody>{table_rows_str}</tbody>'
+        '</table>'
+        '</div>'
+    )
+    st.markdown(guide_table_html, unsafe_allow_html=True)
 
     # Interactive Ratio Comparison Chart
     st.markdown("##### 📈 Interactive Ratio Historical Trend")

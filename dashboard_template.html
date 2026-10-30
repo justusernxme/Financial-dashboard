@@ -125,6 +125,12 @@
             text-align: left;
             font-weight: 500;
         }
+        .definitions-table td,
+        .definitions-table th {
+            white-space: normal !important;
+            word-break: break-word !important;
+            text-align: left !important;
+        }
         tr:nth-child(even) td {
             background-color: #F8FAFC;
         }
@@ -315,7 +321,7 @@
                     </p>
                 </div>
                 <div class="table-container shadow-sm">
-                    <table>
+                    <table class="definitions-table w-full">
                         <thead>
                             <tr class="bg-slate-50 text-slate-700">
                                 <th class="w-60 text-left">Ratio / Metric</th>
@@ -1155,10 +1161,10 @@
                 if (defTbody) {
                     const defTr = document.createElement('tr');
                     defTr.innerHTML = `
-                        <td class="font-semibold text-slate-800">${metric}</td>
-                        <td><span class="text-xs px-2.5 py-0.5 rounded-full font-bold ${catBadge}">${category}</span></td>
-                        <td class="text-xs text-blue-700 font-mono font-medium">${meta.Equation}</td>
-                        <td class="text-xs text-slate-600 leading-relaxed">${meta.Definition}</td>
+                        <td class="font-semibold text-slate-800" style="white-space: normal; vertical-align: top; width: 20%;">${metric}</td>
+                        <td style="white-space: normal; vertical-align: top; width: 14%;"><span class="text-xs px-2.5 py-0.5 rounded-full font-bold ${catBadge}">${category}</span></td>
+                        <td class="text-xs text-blue-700 font-mono font-medium" style="white-space: normal; word-break: break-word; vertical-align: top; width: 28%;"><span class="bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">${meta.Equation}</span></td>
+                        <td class="text-xs text-slate-600 leading-relaxed" style="white-space: normal; word-break: break-word; vertical-align: top; width: 38%;">${meta.Definition}</td>
                     `;
                     defTbody.appendChild(defTr);
                 }
