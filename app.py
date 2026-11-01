@@ -764,7 +764,20 @@ def generate_company_dataset(
             ("Cost of Goods Sold", cogs_dict),
             ("Gross Profit", gp_dict),
             ("Operating Income (EBIT)", ebit_dict),
+            (
+                "Research and Development",
+                {y: round(rev_dict[y] * 0.12, 2) for y in sorted_years},
+            ),
             ("Net Income", ni_dict),
+            (
+                "Diluted Earnings Per Share (USD)",
+                {
+                    y: round(
+                        ni_dict[y] / (15000.0 if is_aapl else 7500.0), 2
+                    )
+                    for y in sorted_years
+                },
+            ),
         ]
         for label, series in inc_items:
             row = {"Line Item": label}
@@ -773,6 +786,13 @@ def generate_company_dataset(
             income_rows.append(row)
 
         bal_items = [
+            (
+                "Cash and Cash Equivalents",
+                {
+                    y: round(cur_assets_dict[y] * 0.45, 2)
+                    for y in sorted_years
+                },
+            ),
             ("Total Current Assets", cur_assets_dict),
             (
                 "Goodwill",
@@ -785,6 +805,13 @@ def generate_company_dataset(
             ("Total Assets", assets_dict),
             ("Total Current Liabilities", cur_liab_dict),
             ("Total Debt", debt_dict),
+            (
+                "Total Liabilities",
+                {
+                    y: round(assets_dict[y] - equity_dict[y], 2)
+                    for y in sorted_years
+                },
+            ),
             ("Total Stockholders' Equity", equity_dict),
         ]
         for label, series in bal_items:
@@ -2318,6 +2345,7 @@ def render_stock_price_tab(stock_df: pd.DataFrame, ticker: str) -> None:
 
 
 COMPARISON_METRIC_CONFIG: Dict[str, Dict[str, Any]] = {
+    # Market & Total Return
     "cum_return": {
         "label": "📈 Cumulative Stock Return (%)",
         "title": "Cumulative Stock Return (%)",
@@ -2332,9 +2360,24 @@ COMPARISON_METRIC_CONFIG: Dict[str, Dict[str, Any]] = {
         "format": "$,.2f",
         "higher_better": True,
     },
+    # Financial Statement Scale & Income
     "revenue": {
         "label": "💰 Annual Revenue ($B)",
         "title": "Annual Revenue ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
+        "higher_better": True,
+    },
+    "gross_profit": {
+        "label": "💎 Gross Profit ($B)",
+        "title": "Gross Profit ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
+        "higher_better": True,
+    },
+    "ebit": {
+        "label": "⚙️ Operating Income (EBIT) ($B)",
+        "title": "Operating Income / EBIT ($ Billions)",
         "unit": "$B",
         "format": "$,.2f",
         "higher_better": True,
@@ -2346,23 +2389,74 @@ COMPARISON_METRIC_CONFIG: Dict[str, Dict[str, Any]] = {
         "format": "$,.2f",
         "higher_better": True,
     },
-    "op_margin": {
-        "label": "📊 Operating Profit Margin (%)",
-        "title": "Operating Profit Margin (%)",
-        "unit": "%",
-        "format": ".2f",
+    "rnd_expense": {
+        "label": "🔬 Research & Development ($B)",
+        "title": "Research & Development Expense ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
         "higher_better": True,
     },
-    "roe": {
-        "label": "🎯 Return on Equity (ROE %)",
-        "title": "Return on Equity (ROE %)",
-        "unit": "%",
-        "format": ".2f",
+    "eps": {
+        "label": "🪙 Diluted Earnings Per Share ($)",
+        "title": "Diluted Earnings Per Share ($/Share)",
+        "unit": "$",
+        "format": "$,.2f",
         "higher_better": True,
     },
+    # Balance Sheet Scale (Total Assets & etc.)
+    "total_assets": {
+        "label": "🏛️ Total Assets ($B)",
+        "title": "Total Assets ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
+        "higher_better": True,
+    },
+    "total_liabilities": {
+        "label": "📜 Total Liabilities ($B)",
+        "title": "Total Liabilities ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
+        "higher_better": False,
+    },
+    "total_equity": {
+        "label": "🏦 Total Stockholders' Equity ($B)",
+        "title": "Total Stockholders' Equity ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
+        "higher_better": True,
+    },
+    "cash_and_equiv": {
+        "label": "💵 Cash & Cash Equivalents ($B)",
+        "title": "Cash & Cash Equivalents ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
+        "higher_better": True,
+    },
+    "current_assets": {
+        "label": "💼 Total Current Assets ($B)",
+        "title": "Total Current Assets ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
+        "higher_better": True,
+    },
+    "current_liabilities": {
+        "label": "🧾 Total Current Liabilities ($B)",
+        "title": "Total Current Liabilities ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
+        "higher_better": False,
+    },
+    # Margins & Profitability Ratios
     "gross_margin": {
         "label": "💎 Gross Profit Margin (%)",
         "title": "Gross Profit Margin (%)",
+        "unit": "%",
+        "format": ".2f",
+        "higher_better": True,
+    },
+    "op_margin": {
+        "label": "📊 Operating Profit Margin (%)",
+        "title": "Operating Profit Margin (%)",
         "unit": "%",
         "format": ".2f",
         "higher_better": True,
@@ -2374,6 +2468,21 @@ COMPARISON_METRIC_CONFIG: Dict[str, Dict[str, Any]] = {
         "format": ".2f",
         "higher_better": True,
     },
+    "roe": {
+        "label": "🎯 Return on Equity (ROE %)",
+        "title": "Return on Equity (ROE %)",
+        "unit": "%",
+        "format": ".2f",
+        "higher_better": True,
+    },
+    "roa": {
+        "label": "🎯 Return on Assets (ROA %)",
+        "title": "Return on Assets (ROA %)",
+        "unit": "%",
+        "format": ".2f",
+        "higher_better": True,
+    },
+    # Liquidity & Solvency Ratios
     "current_ratio": {
         "label": "💧 Current Ratio (x)",
         "title": "Current Ratio (Liquidity)",
@@ -2384,6 +2493,13 @@ COMPARISON_METRIC_CONFIG: Dict[str, Dict[str, Any]] = {
     "quick_ratio": {
         "label": "⚡ Quick Ratio (Acid-Test)",
         "title": "Quick Ratio (Acid-Test)",
+        "unit": "x",
+        "format": ".2f",
+        "higher_better": True,
+    },
+    "cash_ratio": {
+        "label": "🪙 Cash Ratio (x)",
+        "title": "Cash Ratio (Cash & Mkt Sec / Cur Liab)",
         "unit": "x",
         "format": ".2f",
         "higher_better": True,
@@ -2402,6 +2518,21 @@ COMPARISON_METRIC_CONFIG: Dict[str, Dict[str, Any]] = {
         "format": ".2f",
         "higher_better": False,
     },
+    "financial_leverage": {
+        "label": "🏗️ Financial Leverage (Equity Multiplier)",
+        "title": "Financial Leverage (Total Assets / Equity)",
+        "unit": "x",
+        "format": ".2f",
+        "higher_better": False,
+    },
+    "interest_coverage": {
+        "label": "🛡️ Interest Coverage Ratio (x)",
+        "title": "Interest Coverage Ratio (EBIT / Interest)",
+        "unit": "x",
+        "format": ".2f",
+        "higher_better": True,
+    },
+    # Efficiency & Cash Flow Ratios
     "asset_turnover": {
         "label": "🔄 Asset Turnover Ratio",
         "title": "Asset Turnover Ratio",
@@ -2409,11 +2540,11 @@ COMPARISON_METRIC_CONFIG: Dict[str, Dict[str, Any]] = {
         "format": ".2f",
         "higher_better": True,
     },
-    "sentiment": {
-        "label": "🧠 MD&A Sentiment (P/N Ratio)",
-        "title": "Loughran-McDonald MD&A Sentiment P/N",
-        "unit": "ratio",
-        "format": ".4f",
+    "ocf": {
+        "label": "🌊 Operating Cash Flow ($B)",
+        "title": "Operating Cash Flow ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
         "higher_better": True,
     },
     "free_cash_flow": {
@@ -2423,11 +2554,12 @@ COMPARISON_METRIC_CONFIG: Dict[str, Dict[str, Any]] = {
         "format": "$,.2f",
         "higher_better": True,
     },
-    "ocf": {
-        "label": "🌊 Operating Cash Flow ($B)",
-        "title": "Operating Cash Flow ($ Billions)",
-        "unit": "$B",
-        "format": "$,.2f",
+    # Sentiment
+    "sentiment": {
+        "label": "🧠 MD&A Sentiment (P/N Ratio)",
+        "title": "Loughran-McDonald MD&A Sentiment P/N",
+        "unit": "ratio",
+        "format": ".4f",
         "higher_better": True,
     },
 }
@@ -2452,6 +2584,8 @@ def extract_comparison_metric_val(
     sum_df = bundle.get("Executive Summary", pd.DataFrame())
     rat_df = bundle.get("Financial Ratios", pd.DataFrame())
     cf_df = bundle.get("Cash Flows", pd.DataFrame())
+    bs_df = bundle.get("Balance Sheet", pd.DataFrame())
+    inc_df = bundle.get("Income Statement", pd.DataFrame())
 
     if metric_key in (
         "stock_price", "revenue", "net_income", "op_margin",
@@ -2479,31 +2613,88 @@ def extract_comparison_metric_val(
                 if metric_key == "sentiment":
                     return safe_float(r.get("MD&A Sentiment P/N"))
 
-    if metric_key in (
-        "gross_margin", "net_margin", "quick_ratio",
-        "debt_to_assets", "asset_turnover"
-    ):
-        name_map = {
-            "gross_margin": "Gross Profit Margin",
-            "net_margin": "Net Profit Margin",
-            "quick_ratio": "Quick Ratio (Acid-Test)",
-            "debt_to_assets": "Debt-to-Assets Ratio",
-            "asset_turnover": "Asset Turnover Ratio",
-        }
-        r_name = name_map[metric_key]
-        if not rat_df.empty:
-            sub = rat_df[rat_df["Ratio / Metric"] == r_name]
-            if not sub.empty and y_str in sub.columns:
-                val = safe_float(sub[y_str].iloc[0])
-                fmt_series = sub.get("Format", pd.Series(["multiplier"]))
-                fmt = str(fmt_series.iloc[0])
-                if fmt == "percent" and 0.0 < abs(val) < 5.0:
-                    val = val * 100.0
-                return val
+    # Balance Sheet metrics ($B)
+    bs_name_map = {
+        "total_assets": "Total Assets",
+        "total_liabilities": "Total Liabilities",
+        "total_equity": "Total Stockholders' Equity",
+        "cash_and_equiv": "Cash and Cash Equivalents",
+        "current_assets": "Total Current Assets",
+        "current_liabilities": "Total Current Liabilities",
+    }
+    if metric_key in bs_name_map and not bs_df.empty:
+        target = bs_name_map[metric_key].lower()
+        sub = bs_df[
+            bs_df["Line Item"].str.lower().str.contains(target, regex=False)
+        ]
+        if not sub.empty and y_str in sub.columns:
+            return safe_float(sub[y_str].iloc[0]) / 1000.0
+        # Accounting equation fallback for total liabilities
+        if metric_key == "total_liabilities":
+            a_sub = bs_df[
+                bs_df["Line Item"].str.lower().str.contains(
+                    "total assets", regex=False
+                )
+            ]
+            e_sub = bs_df[
+                bs_df["Line Item"].str.lower().str.contains(
+                    "stockholders", regex=False
+                )
+            ]
+            if not a_sub.empty and not e_sub.empty:
+                a_val = safe_float(a_sub[y_str].iloc[0])
+                e_val = safe_float(e_sub[y_str].iloc[0])
+                return (a_val - e_val) / 1000.0
 
+    # Income Statement metrics ($B or $/share)
+    inc_name_map = {
+        "ebit": "Operating Income (EBIT)",
+        "gross_profit": "Gross Profit",
+        "rnd_expense": "Research and Development",
+        "eps": "Diluted Earnings Per Share",
+    }
+    if metric_key in inc_name_map and not inc_df.empty:
+        target = inc_name_map[metric_key].lower()
+        sub = inc_df[
+            inc_df["Line Item"].str.lower().str.contains(target, regex=False)
+        ]
+        if not sub.empty and y_str in sub.columns:
+            raw_val = safe_float(sub[y_str].iloc[0])
+            return raw_val if metric_key == "eps" else (raw_val / 1000.0)
+
+    # Financial Ratios metrics
+    rat_name_map = {
+        "gross_margin": "Gross Profit Margin",
+        "net_margin": "Net Profit Margin",
+        "quick_ratio": "Quick Ratio (Acid-Test)",
+        "debt_to_assets": "Debt-to-Assets Ratio",
+        "asset_turnover": "Asset Turnover Ratio",
+        "roa": "Return on Assets (ROA)",
+        "cash_ratio": "Cash Ratio",
+        "financial_leverage": "Financial Leverage",
+        "interest_coverage": "Interest Coverage Ratio",
+    }
+    if metric_key in rat_name_map and not rat_df.empty:
+        target = rat_name_map[metric_key].lower()
+        sub = rat_df[
+            rat_df["Ratio / Metric"].str.lower().str.contains(
+                target, regex=False
+            )
+        ]
+        if not sub.empty and y_str in sub.columns:
+            val = safe_float(sub[y_str].iloc[0])
+            fmt_series = sub.get("Format", pd.Series(["multiplier"]))
+            fmt = str(fmt_series.iloc[0])
+            if fmt == "percent" and 0.0 < abs(val) < 5.0:
+                val = val * 100.0
+            return val
+
+    # Cash Flows metrics
     if metric_key in ("ocf", "free_cash_flow") and not cf_df.empty:
-        c_name = "Net Cash Provided by Operating Activities"
-        sub_ocf = cf_df[cf_df["Line Item"] == c_name]
+        c_name = "Operating Activities"
+        sub_ocf = cf_df[
+            cf_df["Line Item"].str.contains(c_name, regex=False)
+        ]
         ocf_val = (
             safe_float(sub_ocf[y_str].iloc[0]) / 1000.0
             if (not sub_ocf.empty and y_str in sub_ocf.columns)
@@ -2511,8 +2702,10 @@ def extract_comparison_metric_val(
         )
         if metric_key == "ocf":
             return ocf_val
-        cap_name = "Capital Expenditures (Property, Plant and Equipment)"
-        sub_cap = cf_df[cf_df["Line Item"] == cap_name]
+        cap_name = "Capital Expenditures"
+        sub_cap = cf_df[
+            cf_df["Line Item"].str.contains(cap_name, regex=False)
+        ]
         cap_val = (
             abs(safe_float(sub_cap[y_str].iloc[0])) / 1000.0
             if (not sub_cap.empty and y_str in sub_cap.columns)

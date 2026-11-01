@@ -443,12 +443,48 @@ class TestStreamlitApp(unittest.TestCase):
         sent_2025 = extract_comparison_metric_val(bundle, "sentiment", 2025)
         self.assertGreater(sent_2025, 0.5)
 
+        # Test Balance Sheet metrics (Total Assets & etc.)
+        tot_assets = extract_comparison_metric_val(
+            bundle, "total_assets", 2024
+        )
+        tot_liab = extract_comparison_metric_val(
+            bundle, "total_liabilities", 2024
+        )
+        tot_eq = extract_comparison_metric_val(bundle, "total_equity", 2024)
+        cash_eq = extract_comparison_metric_val(
+            bundle, "cash_and_equiv", 2024
+        )
+        self.assertGreater(tot_assets, 300.0)
+        self.assertGreater(tot_liab, 200.0)
+        self.assertGreater(tot_eq, 40.0)
+        self.assertGreater(cash_eq, 15.0)
+
+        # Test Income Statement metrics (EBIT, Gross Profit, EPS)
+        ebit_val = extract_comparison_metric_val(bundle, "ebit", 2024)
+        gp_val = extract_comparison_metric_val(bundle, "gross_profit", 2024)
+        eps_val = extract_comparison_metric_val(bundle, "eps", 2024)
+        self.assertGreater(ebit_val, 100.0)
+        self.assertGreater(gp_val, 150.0)
+        self.assertGreater(eps_val, 5.0)
+
+        # Test Ratios (ROA, Financial Leverage)
+        roa_val = extract_comparison_metric_val(bundle, "roa", 2024)
+        lev_val = extract_comparison_metric_val(
+            bundle, "financial_leverage", 2024
+        )
+        self.assertGreater(roa_val, 20.0)
+        self.assertGreater(lev_val, 3.0)
+
         # Test custom generated ticker (NVDA)
         nvda_bundle = load_company_data_bundle("NVDA")
         nvda_rev = extract_comparison_metric_val(
             nvda_bundle, "revenue", 2025
         )
         self.assertGreater(nvda_rev, 10.0)
+        nvda_assets = extract_comparison_metric_val(
+            nvda_bundle, "total_assets", 2025
+        )
+        self.assertGreater(nvda_assets, 50.0)
 
 
 if __name__ == "__main__":
