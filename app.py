@@ -2317,6 +2317,212 @@ def render_stock_price_tab(stock_df: pd.DataFrame, ticker: str) -> None:
         st.altair_chart(chart, use_container_width=True)
 
 
+COMPARISON_METRIC_CONFIG: Dict[str, Dict[str, Any]] = {
+    "cum_return": {
+        "label": "📈 Cumulative Stock Return (%)",
+        "title": "Cumulative Stock Return (%)",
+        "unit": "%",
+        "format": "+.1f",
+        "higher_better": True,
+    },
+    "stock_price": {
+        "label": "💵 Closing Stock Price ($)",
+        "title": "Closing Stock Price ($)",
+        "unit": "$",
+        "format": "$,.2f",
+        "higher_better": True,
+    },
+    "revenue": {
+        "label": "💰 Annual Revenue ($B)",
+        "title": "Annual Revenue ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
+        "higher_better": True,
+    },
+    "net_income": {
+        "label": "💹 Net Income ($B)",
+        "title": "Net Income ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
+        "higher_better": True,
+    },
+    "op_margin": {
+        "label": "📊 Operating Profit Margin (%)",
+        "title": "Operating Profit Margin (%)",
+        "unit": "%",
+        "format": ".2f",
+        "higher_better": True,
+    },
+    "roe": {
+        "label": "🎯 Return on Equity (ROE %)",
+        "title": "Return on Equity (ROE %)",
+        "unit": "%",
+        "format": ".2f",
+        "higher_better": True,
+    },
+    "gross_margin": {
+        "label": "💎 Gross Profit Margin (%)",
+        "title": "Gross Profit Margin (%)",
+        "unit": "%",
+        "format": ".2f",
+        "higher_better": True,
+    },
+    "net_margin": {
+        "label": "✨ Net Profit Margin (%)",
+        "title": "Net Profit Margin (%)",
+        "unit": "%",
+        "format": ".2f",
+        "higher_better": True,
+    },
+    "current_ratio": {
+        "label": "💧 Current Ratio (x)",
+        "title": "Current Ratio (Liquidity)",
+        "unit": "x",
+        "format": ".2f",
+        "higher_better": True,
+    },
+    "quick_ratio": {
+        "label": "⚡ Quick Ratio (Acid-Test)",
+        "title": "Quick Ratio (Acid-Test)",
+        "unit": "x",
+        "format": ".2f",
+        "higher_better": True,
+    },
+    "debt_to_equity": {
+        "label": "⚖️ Debt-to-Equity Ratio",
+        "title": "Debt-to-Equity Ratio",
+        "unit": "x",
+        "format": ".2f",
+        "higher_better": False,
+    },
+    "debt_to_assets": {
+        "label": "🛡️ Debt-to-Assets Ratio",
+        "title": "Debt-to-Assets Ratio",
+        "unit": "x",
+        "format": ".2f",
+        "higher_better": False,
+    },
+    "asset_turnover": {
+        "label": "🔄 Asset Turnover Ratio",
+        "title": "Asset Turnover Ratio",
+        "unit": "x",
+        "format": ".2f",
+        "higher_better": True,
+    },
+    "sentiment": {
+        "label": "🧠 MD&A Sentiment (P/N Ratio)",
+        "title": "Loughran-McDonald MD&A Sentiment P/N",
+        "unit": "ratio",
+        "format": ".4f",
+        "higher_better": True,
+    },
+    "free_cash_flow": {
+        "label": "💸 Free Cash Flow ($B)",
+        "title": "Free Cash Flow ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
+        "higher_better": True,
+    },
+    "ocf": {
+        "label": "🌊 Operating Cash Flow ($B)",
+        "title": "Operating Cash Flow ($ Billions)",
+        "unit": "$B",
+        "format": "$,.2f",
+        "higher_better": True,
+    },
+}
+
+
+def extract_comparison_metric_val(
+    bundle: Dict[str, pd.DataFrame],
+    metric_key: str,
+    year_int: int,
+) -> float:
+    """Extract a standardized numerical metric value for a given year.
+
+    Args:
+        bundle (Dict[str, pd.DataFrame]): Company dataset workbook bundle.
+        metric_key (str): Canonical metric identifier key.
+        year_int (int): 4-digit fiscal year integer.
+
+    Returns:
+        float: Parsed numerical value in appropriate standard unit.
+    """
+    y_str = str(year_int)
+    sum_df = bundle.get("Executive Summary", pd.DataFrame())
+    rat_df = bundle.get("Financial Ratios", pd.DataFrame())
+    cf_df = bundle.get("Cash Flows", pd.DataFrame())
+
+    if metric_key in (
+        "stock_price", "revenue", "net_income", "op_margin",
+        "roe", "current_ratio", "debt_to_equity", "sentiment", "cum_return"
+    ):
+        if not sum_df.empty:
+            sub = sum_df[sum_df["Fiscal Year"].astype(str) == y_str]
+            if not sub.empty:
+                r = sub.iloc[0]
+                if metric_key in ("stock_price", "cum_return"):
+                    return safe_float(r.get("Stock Price ($)"))
+                if metric_key == "revenue":
+                    return safe_float(r.get("Revenue ($B)"))
+                if metric_key == "net_income":
+                    return safe_float(r.get("Net Income ($B)"))
+                if metric_key == "op_margin":
+                    return safe_float(r.get("Operating Margin (%)"))
+                if metric_key == "roe":
+                    val = safe_float(r.get("Return on Equity (%)"))
+                    return val * 100.0 if (0.0 < abs(val) < 5.0) else val
+                if metric_key == "current_ratio":
+                    return safe_float(r.get("Current Ratio (x)"))
+                if metric_key == "debt_to_equity":
+                    return safe_float(r.get("Debt-to-Equity (x)"))
+                if metric_key == "sentiment":
+                    return safe_float(r.get("MD&A Sentiment P/N"))
+
+    if metric_key in (
+        "gross_margin", "net_margin", "quick_ratio",
+        "debt_to_assets", "asset_turnover"
+    ):
+        name_map = {
+            "gross_margin": "Gross Profit Margin",
+            "net_margin": "Net Profit Margin",
+            "quick_ratio": "Quick Ratio (Acid-Test)",
+            "debt_to_assets": "Debt-to-Assets Ratio",
+            "asset_turnover": "Asset Turnover Ratio",
+        }
+        r_name = name_map[metric_key]
+        if not rat_df.empty:
+            sub = rat_df[rat_df["Ratio / Metric"] == r_name]
+            if not sub.empty and y_str in sub.columns:
+                val = safe_float(sub[y_str].iloc[0])
+                fmt_series = sub.get("Format", pd.Series(["multiplier"]))
+                fmt = str(fmt_series.iloc[0])
+                if fmt == "percent" and 0.0 < abs(val) < 5.0:
+                    val = val * 100.0
+                return val
+
+    if metric_key in ("ocf", "free_cash_flow") and not cf_df.empty:
+        c_name = "Net Cash Provided by Operating Activities"
+        sub_ocf = cf_df[cf_df["Line Item"] == c_name]
+        ocf_val = (
+            safe_float(sub_ocf[y_str].iloc[0]) / 1000.0
+            if (not sub_ocf.empty and y_str in sub_ocf.columns)
+            else 0.0
+        )
+        if metric_key == "ocf":
+            return ocf_val
+        cap_name = "Capital Expenditures (Property, Plant and Equipment)"
+        sub_cap = cf_df[cf_df["Line Item"] == cap_name]
+        cap_val = (
+            abs(safe_float(sub_cap[y_str].iloc[0])) / 1000.0
+            if (not sub_cap.empty and y_str in sub_cap.columns)
+            else 0.0
+        )
+        return ocf_val - cap_val
+
+    return 0.0
+
+
 def render_company_comparison_tab(
     default_ticker_a: str,
     default_ticker_b: str = "MSFT",
@@ -2458,318 +2664,531 @@ def render_company_comparison_tab(
     first_a = sum_a.iloc[0] if not sum_a.empty else {}
     first_b = sum_b.iloc[0] if not sum_b.empty else {}
 
-    p_a = safe_float(last_a.get("Stock Price ($)", 0.0))
-    p_b = safe_float(last_b.get("Stock Price ($)", 0.0))
-    p0_a = safe_float(first_a.get("Stock Price ($)", 1.0))
-    p0_b = safe_float(first_b.get("Stock Price ($)", 1.0))
+    # Interactive Comparison Timeframe & Metric Selection Controls
+    st.markdown("<div style='height: 0.2rem;'></div>", unsafe_allow_html=True)
+    st.markdown("##### 🎛️ Comparison Timeframe & Metric Controls")
 
-    ret_10y_a = ((p_a - p0_a) / p0_a * 100.0) if p0_a > 0 else 0.0
-    ret_10y_b = ((p_b - p0_b) / p0_b * 100.0) if p0_b > 0 else 0.0
+    c_met, c_from, c_to = st.columns([2.4, 1.1, 1.1])
+    metric_keys = list(COMPARISON_METRIC_CONFIG.keys())
+    metric_labels = [
+        COMPARISON_METRIC_CONFIG[k]["label"] for k in metric_keys
+    ]
+    with c_met:
+        sel_label = st.selectbox(
+            "Choose What to Show on Graph",
+            options=metric_labels,
+            index=0,
+            key="cmp_chart_metric",
+        )
+        chosen_key = metric_keys[metric_labels.index(sel_label)]
 
-    rev_a = safe_float(last_a.get("Revenue ($B)", 0.0))
-    rev_b = safe_float(last_b.get("Revenue ($B)", 0.0))
-    ni_a = safe_float(last_a.get("Net Income ($B)", 0.0))
-    ni_b = safe_float(last_b.get("Net Income ($B)", 0.0))
+    all_years = list(range(2016, 2026))
+    with c_from:
+        start_year_input = st.selectbox(
+            "From Year",
+            options=all_years,
+            index=0,
+            key="cmp_chart_from_year",
+        )
+    with c_to:
+        end_year_input = st.selectbox(
+            "To Year",
+            options=all_years,
+            index=len(all_years) - 1,
+            key="cmp_chart_to_year",
+        )
 
-    opm_a = safe_float(last_a.get("Operating Margin (%)", 0.0))
-    opm_b = safe_float(last_b.get("Operating Margin (%)", 0.0))
-    roe_a = safe_float(last_a.get("Return on Equity (%)", 0.0))
-    roe_b = safe_float(last_b.get("Return on Equity (%)", 0.0))
+    start_yr = min(start_year_input, end_year_input)
+    end_yr = max(start_year_input, end_year_input)
+    timeframe_years = [y for y in all_years if start_yr <= y <= end_yr]
+    cfg = COMPARISON_METRIC_CONFIG[chosen_key]
 
-    winner_ret = ticker_a if ret_10y_a >= ret_10y_b else ticker_b
-    winner_rev = ticker_a if rev_a >= rev_b else ticker_b
-    winner_ni = ticker_a if ni_a >= ni_b else ticker_b
-    winner_roe = ticker_a if roe_a >= roe_b else ticker_b
+    # Timeframe Showdown Calculations
+    p_start_a = extract_comparison_metric_val(
+        bundle_a, "stock_price", start_yr
+    )
+    p_end_a = extract_comparison_metric_val(
+        bundle_a, "stock_price", end_yr
+    )
+    ret_timeframe_a = (
+        ((p_end_a - p_start_a) / p_start_a * 100.0)
+        if p_start_a > 0.0
+        else 0.0
+    )
 
-    # Head-to-Head KPI Comparison Showdown
+    p_start_b = extract_comparison_metric_val(
+        bundle_b, "stock_price", start_yr
+    )
+    p_end_b = extract_comparison_metric_val(
+        bundle_b, "stock_price", end_yr
+    )
+    ret_timeframe_b = (
+        ((p_end_b - p_start_b) / p_start_b * 100.0)
+        if p_start_b > 0.0
+        else 0.0
+    )
+
+    rev_end_a = extract_comparison_metric_val(bundle_a, "revenue", end_yr)
+    rev_end_b = extract_comparison_metric_val(bundle_b, "revenue", end_yr)
+    ni_end_a = extract_comparison_metric_val(bundle_a, "net_income", end_yr)
+    ni_end_b = extract_comparison_metric_val(bundle_b, "net_income", end_yr)
+    roe_end_a = extract_comparison_metric_val(bundle_a, "roe", end_yr)
+    roe_end_b = extract_comparison_metric_val(bundle_b, "roe", end_yr)
+
+    winner_ret = (
+        ticker_a if ret_timeframe_a >= ret_timeframe_b else ticker_b
+    )
+    winner_rev = ticker_a if rev_end_a >= rev_end_b else ticker_b
+    winner_ni = ticker_a if ni_end_a >= ni_end_b else ticker_b
+    winner_roe = ticker_a if roe_end_a >= roe_end_b else ticker_b
+
+    # Head-to-Head KPI Comparison Showdown (Responsive to Timeframe)
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    ret_title = (
+        f"{end_yr - start_yr}-Yr Stock Return"
+        if end_yr > start_yr
+        else f"FY{end_yr} Stock Return"
+    )
+    delta_cls_ret = (
+        "delta-pos"
+        if ret_timeframe_a >= ret_timeframe_b
+        else "delta-neg"
+    )
+    diff_ret = abs(ret_timeframe_a - ret_timeframe_b)
     with kpi1:
         st.markdown(
             f'<div class="kpi-card">'
-            f'<div class="kpi-title">10-Yr Stock Return</div>'
+            f'<div class="kpi-title">{ret_title} ({start_yr}–{end_yr})</div>'
             f'<div style="display:flex; justify-content:space-between; '
             f'margin-top:4px; font-size:0.88rem;">'
-            f'<div><b>{ticker_a}</b>: {ret_10y_a:+.1f}%</div>'
-            f'<div><b>{ticker_b}</b>: {ret_10y_b:+.1f}%</div>'
+            f'<div><b>{ticker_a}</b>: {ret_timeframe_a:+.1f}%</div>'
+            f'<div><b>{ticker_b}</b>: {ret_timeframe_b:+.1f}%</div>'
             f'</div>'
-            f'<div class="kpi-delta '
-            f'{"delta-pos" if ret_10y_a >= ret_10y_b else "delta-neg"}">'
-            f'🏆 {winner_ret} ({abs(ret_10y_a - ret_10y_b):.1f}% lead)'
+            f'<div class="kpi-delta {delta_cls_ret}">'
+            f'🏆 {winner_ret} ({diff_ret:.1f}% lead)'
             f'</div></div>',
             unsafe_allow_html=True,
         )
     with kpi2:
         st.markdown(
             f'<div class="kpi-card">'
-            f'<div class="kpi-title">FY2025 Annual Revenue</div>'
+            f'<div class="kpi-title">FY{end_yr} Annual Revenue</div>'
             f'<div style="display:flex; justify-content:space-between; '
             f'margin-top:4px; font-size:0.88rem;">'
-            f'<div><b>{ticker_a}</b>: ${rev_a:,.1f}B</div>'
-            f'<div><b>{ticker_b}</b>: ${rev_b:,.1f}B</div>'
+            f'<div><b>{ticker_a}</b>: ${rev_end_a:,.1f}B</div>'
+            f'<div><b>{ticker_b}</b>: ${rev_end_b:,.1f}B</div>'
             f'</div>'
             f'<div class="kpi-delta '
-            f'{"delta-pos" if rev_a >= rev_b else "delta-neg"}">'
-            f'🏆 {winner_rev} (${abs(rev_a - rev_b):,.1f}B lead)'
+            f'{"delta-pos" if rev_end_a >= rev_end_b else "delta-neg"}">'
+            f'🏆 {winner_rev} (${abs(rev_end_a - rev_end_b):,.1f}B lead)'
             f'</div></div>',
             unsafe_allow_html=True,
         )
     with kpi3:
         st.markdown(
             f'<div class="kpi-card">'
-            f'<div class="kpi-title">FY2025 Net Income</div>'
+            f'<div class="kpi-title">FY{end_yr} Net Income</div>'
             f'<div style="display:flex; justify-content:space-between; '
             f'margin-top:4px; font-size:0.88rem;">'
-            f'<div><b>{ticker_a}</b>: ${ni_a:,.1f}B</div>'
-            f'<div><b>{ticker_b}</b>: ${ni_b:,.1f}B</div>'
+            f'<div><b>{ticker_a}</b>: ${ni_end_a:,.1f}B</div>'
+            f'<div><b>{ticker_b}</b>: ${ni_end_b:,.1f}B</div>'
             f'</div>'
             f'<div class="kpi-delta '
-            f'{"delta-pos" if ni_a >= ni_b else "delta-neg"}">'
-            f'🏆 {winner_ni} (${abs(ni_a - ni_b):,.1f}B lead)'
+            f'{"delta-pos" if ni_end_a >= ni_end_b else "delta-neg"}">'
+            f'🏆 {winner_ni} (${abs(ni_end_a - ni_end_b):,.1f}B lead)'
             f'</div></div>',
             unsafe_allow_html=True,
         )
     with kpi4:
         st.markdown(
             f'<div class="kpi-card">'
-            f'<div class="kpi-title">Return on Equity (ROE)</div>'
+            f'<div class="kpi-title">FY{end_yr} Return on Equity</div>'
             f'<div style="display:flex; justify-content:space-between; '
             f'margin-top:4px; font-size:0.88rem;">'
-            f'<div><b>{ticker_a}</b>: {roe_a:.1f}%</div>'
-            f'<div><b>{ticker_b}</b>: {roe_b:.1f}%</div>'
+            f'<div><b>{ticker_a}</b>: {roe_end_a:.1f}%</div>'
+            f'<div><b>{ticker_b}</b>: {roe_end_b:.1f}%</div>'
             f'</div>'
             f'<div class="kpi-delta '
-            f'{"delta-pos" if roe_a >= roe_b else "delta-neg"}">'
-            f'🏆 {winner_roe} ({abs(roe_a - roe_b):.1f}% lead)'
+            f'{"delta-pos" if roe_end_a >= roe_end_b else "delta-neg"}">'
+            f'🏆 {winner_roe} ({abs(roe_end_a - roe_end_b):.1f}% lead)'
             f'</div></div>',
             unsafe_allow_html=True,
         )
 
     st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
 
-    # Comparative Visualizations
-    st.markdown("##### 📈 Comparative Historical Visualizations (2016–2025)")
-    v_tab1, v_tab2, v_tab3, v_tab4 = st.tabs(
-        [
-            "📈 10-Yr Cumulative Return",
-            "📊 Revenue & Net Income Trajectory",
-            "📐 Financial Ratio Comparison",
-            "🧠 MD&A Sentiment Trajectory",
-        ]
+    # Primary Benchmark Trajectory Chart (Driven by chosen metric & timeframe)
+    st.markdown(
+        f"##### 📈 Comparative Trajectory: {cfg['title']} ({start_yr}–{end_yr})"
     )
 
-    with v_tab1:
-        # Normalized stock price performance indexed to 0% in FY2016
-        ret_rows = []
-        for _, r in sum_a.iterrows():
-            yr = str(r["Fiscal Year"])
-            p = safe_float(r["Stock Price ($)"])
-            cum = ((p - p0_a) / p0_a * 100.0) if p0_a > 0 else 0.0
-            ret_rows.append(
-                {
-                    "Fiscal Year": yr,
-                    "Company": f"{ticker_a} ({meta_a.get('name', ticker_a)})",
-                    "Cumulative Return (%)": round(cum, 2),
-                    "Price ($)": p,
-                }
-            )
-        for _, r in sum_b.iterrows():
-            yr = str(r["Fiscal Year"])
-            p = safe_float(r["Stock Price ($)"])
-            cum = ((p - p0_b) / p0_b * 100.0) if p0_b > 0 else 0.0
-            ret_rows.append(
-                {
-                    "Fiscal Year": yr,
-                    "Company": f"{ticker_b} ({meta_b.get('name', ticker_b)})",
-                    "Cumulative Return (%)": round(cum, 2),
-                    "Price ($)": p,
-                }
-            )
-        if ret_rows:
-            df_ret = pd.DataFrame(ret_rows)
-            chart_ret = (
-                alt.Chart(df_ret)
-                .mark_line(point=True, strokeWidth=3)
-                .encode(
-                    x=alt.X("Fiscal Year:O", title="Fiscal Year"),
-                    y=alt.Y(
-                        "Cumulative Return (%):Q",
-                        title="Normalized Cumulative Return (%)",
-                    ),
-                    color=alt.Color(
-                        "Company:N",
-                        scale=alt.Scale(range=[COLOR_NAVY, COLOR_CRIMSON]),
-                    ),
-                    tooltip=[
-                        "Fiscal Year",
-                        "Company",
-                        alt.Tooltip("Cumulative Return (%):Q", format="+.1f"),
-                        alt.Tooltip("Price ($):Q", format="$,.2f"),
-                    ],
-                )
-                .properties(height=340)
-            )
-            st.altair_chart(chart_ret, use_container_width=True)
+    chart_rows = []
+    val_end_a = 0.0
+    val_end_b = 0.0
 
-    with v_tab2:
-        rev_rows = []
-        for _, r in sum_a.iterrows():
-            yr = str(r["Fiscal Year"])
-            rev_rows.append(
-                {
-                    "Fiscal Year": yr,
-                    "Series": f"{ticker_a} Revenue",
-                    "Amount ($B)": safe_float(r["Revenue ($B)"]),
-                }
+    for yr in timeframe_years:
+        yr_str = str(yr)
+        if chosen_key == "cum_return":
+            pa = extract_comparison_metric_val(bundle_a, "stock_price", yr)
+            pb = extract_comparison_metric_val(bundle_b, "stock_price", yr)
+            cuma = (
+                ((pa - p_start_a) / p_start_a * 100.0)
+                if p_start_a > 0.0
+                else 0.0
             )
-            rev_rows.append(
-                {
-                    "Fiscal Year": yr,
-                    "Series": f"{ticker_a} Net Income",
-                    "Amount ($B)": safe_float(r["Net Income ($B)"]),
-                }
+            cumb = (
+                ((pb - p_start_b) / p_start_b * 100.0)
+                if p_start_b > 0.0
+                else 0.0
             )
-        for _, r in sum_b.iterrows():
-            yr = str(r["Fiscal Year"])
-            rev_rows.append(
-                {
-                    "Fiscal Year": yr,
-                    "Series": f"{ticker_b} Revenue",
-                    "Amount ($B)": safe_float(r["Revenue ($B)"]),
-                }
+            va = round(cuma, 2)
+            vb = round(cumb, 2)
+        else:
+            va = round(
+                extract_comparison_metric_val(bundle_a, chosen_key, yr), 2
             )
-            rev_rows.append(
-                {
-                    "Fiscal Year": yr,
-                    "Series": f"{ticker_b} Net Income",
-                    "Amount ($B)": safe_float(r["Net Income ($B)"]),
-                }
+            vb = round(
+                extract_comparison_metric_val(bundle_b, chosen_key, yr), 2
             )
-        if rev_rows:
-            df_rev = pd.DataFrame(rev_rows)
-            chart_rev = (
-                alt.Chart(df_rev)
-                .mark_line(point=True, strokeWidth=2.5)
-                .encode(
-                    x=alt.X("Fiscal Year:O", title="Fiscal Year"),
-                    y=alt.Y("Amount ($B):Q", title="Amount ($ Billions)"),
-                    color=alt.Color("Series:N", title="Metric"),
-                    tooltip=[
-                        "Fiscal Year",
-                        "Series",
-                        alt.Tooltip("Amount ($B):Q", format="$,.2f"),
-                    ],
-                )
-                .properties(height=340)
-            )
-            st.altair_chart(chart_rev, use_container_width=True)
 
-    with v_tab3:
-        ratios_a = bundle_a.get("Financial Ratios", pd.DataFrame())
-        ratios_b = bundle_b.get("Financial Ratios", pd.DataFrame())
-        all_metrics = sorted(
-            list(
-                set(
-                    ratios_a["Ratio / Metric"].dropna().tolist()
-                    + ratios_b["Ratio / Metric"].dropna().tolist()
-                )
+        if yr == end_yr:
+            val_end_a = va
+            val_end_b = vb
+
+        chart_rows.append(
+            {
+                "Fiscal Year": yr_str,
+                "Company": f"{ticker_a} ({meta_a.get('name', ticker_a)})",
+                "Value": va,
+                "Ticker": ticker_a,
+            }
+        )
+        chart_rows.append(
+            {
+                "Fiscal Year": yr_str,
+                "Company": f"{ticker_b} ({meta_b.get('name', ticker_b)})",
+                "Value": vb,
+                "Ticker": ticker_b,
+            }
+        )
+
+    if chart_rows:
+        df_chart = pd.DataFrame(chart_rows)
+        unit = cfg["unit"]
+        fmt = cfg["format"]
+        chart_comp = (
+            alt.Chart(df_chart)
+            .mark_line(point=True, strokeWidth=3)
+            .encode(
+                x=alt.X("Fiscal Year:O", title="Fiscal Year"),
+                y=alt.Y("Value:Q", title=f"{cfg['title']} ({unit})"),
+                color=alt.Color(
+                    "Company:N",
+                    scale=alt.Scale(range=[COLOR_NAVY, COLOR_CRIMSON]),
+                ),
+                tooltip=[
+                    "Fiscal Year",
+                    "Company",
+                    alt.Tooltip("Value:Q", format=fmt, title=cfg["title"]),
+                ],
             )
+            .properties(height=350)
         )
-        if not all_metrics:
-            all_metrics = ["Current Ratio", "Operating Profit Margin"]
-        def_m = (
-            "Operating Profit Margin"
-            if "Operating Profit Margin" in all_metrics
-            else all_metrics[0]
+        st.altair_chart(chart_comp, use_container_width=True)
+
+        diff = abs(val_end_a - val_end_b)
+        higher_better = cfg.get("higher_better", True)
+        is_a_lead = (
+            (val_end_a >= val_end_b)
+            if higher_better
+            else (val_end_a <= val_end_b)
         )
-        chosen_ratio = st.selectbox(
-            "Select Financial Ratio to Benchmark",
-            all_metrics,
-            index=all_metrics.index(def_m),
-            key="cmp_ratio_choice",
+        lead_tick = ticker_a if is_a_lead else ticker_b
+        lead_name = (
+            meta_a.get("name", ticker_a)
+            if is_a_lead
+            else meta_b.get("name", ticker_b)
         )
-        sub_a = ratios_a[ratios_a["Ratio / Metric"] == chosen_ratio]
-        sub_b = ratios_b[ratios_b["Ratio / Metric"] == chosen_ratio]
-        year_cols = [str(2016 + i) for i in range(10)]
-        ratio_chart_rows = []
-        if not sub_a.empty:
-            for y in year_cols:
-                ratio_chart_rows.append(
+
+        def fmt_val(v: float) -> str:
+            if unit == "$":
+                return f"${v:,.2f}"
+            if unit == "$B":
+                return f"${v:,.2f}B"
+            if unit == "%":
+                return (
+                    f"{v:+.2f}%"
+                    if chosen_key == "cum_return"
+                    else f"{v:.2f}%"
+                )
+            if unit == "x":
+                return f"{v:.2f}x"
+            return f"{v:.4f}"
+
+        st.caption(
+            f"📌 **FY{end_yr} Benchmark Result**: **{lead_tick}** "
+            f"({lead_name}) leads in **{cfg['title']}** with "
+            f"{fmt_val(val_end_a if is_a_lead else val_end_b)} vs "
+            f"{fmt_val(val_end_b if is_a_lead else val_end_a)} "
+            f"({fmt_val(diff)} variance across FY{start_yr}–FY{end_yr})."
+        )
+
+    # Preset multi-metric deep dive views
+    with st.expander(
+        "🔍 View Preset Multi-Metric Comparison Tabs", expanded=False
+    ):
+        v_tab1, v_tab2, v_tab3, v_tab4 = st.tabs(
+            [
+                "📈 Cumulative Return",
+                "📊 Revenue & Net Income Trajectory",
+                "📐 Financial Ratio Comparison",
+                "🧠 MD&A Sentiment Trajectory",
+            ]
+        )
+
+        with v_tab1:
+            ret_rows = []
+            comp_a_label = f"{ticker_a} ({meta_a.get('name', ticker_a)})"
+            comp_b_label = f"{ticker_b} ({meta_b.get('name', ticker_b)})"
+            for yr in timeframe_years:
+                pa = extract_comparison_metric_val(
+                    bundle_a, "stock_price", yr
+                )
+                pb = extract_comparison_metric_val(
+                    bundle_b, "stock_price", yr
+                )
+                cuma = (
+                    ((pa - p_start_a) / p_start_a * 100.0)
+                    if p_start_a > 0.0
+                    else 0.0
+                )
+                cumb = (
+                    ((pb - p_start_b) / p_start_b * 100.0)
+                    if p_start_b > 0.0
+                    else 0.0
+                )
+                ret_rows.append(
                     {
-                        "Fiscal Year": y,
+                        "Fiscal Year": str(yr),
+                        "Company": comp_a_label,
+                        "Cumulative Return (%)": round(cuma, 2),
+                        "Price ($)": pa,
+                    }
+                )
+                ret_rows.append(
+                    {
+                        "Fiscal Year": str(yr),
+                        "Company": comp_b_label,
+                        "Cumulative Return (%)": round(cumb, 2),
+                        "Price ($)": pb,
+                    }
+                )
+            if ret_rows:
+                df_ret = pd.DataFrame(ret_rows)
+                chart_ret = (
+                    alt.Chart(df_ret)
+                    .mark_line(point=True, strokeWidth=3)
+                    .encode(
+                        x=alt.X("Fiscal Year:O", title="Fiscal Year"),
+                        y=alt.Y(
+                            "Cumulative Return (%):Q",
+                            title=f"Cumulative Return (%) vs FY{start_yr}",
+                        ),
+                        color=alt.Color(
+                            "Company:N",
+                            scale=alt.Scale(range=[COLOR_NAVY, COLOR_CRIMSON]),
+                        ),
+                        tooltip=[
+                            "Fiscal Year",
+                            "Company",
+                            alt.Tooltip(
+                                "Cumulative Return (%):Q", format="+.1f"
+                            ),
+                            alt.Tooltip("Price ($):Q", format="$,.2f"),
+                        ],
+                    )
+                    .properties(height=340)
+                )
+                st.altair_chart(chart_ret, use_container_width=True)
+
+        with v_tab2:
+            rev_rows = []
+            for yr in timeframe_years:
+                yr_str = str(yr)
+                ra = extract_comparison_metric_val(bundle_a, "revenue", yr)
+                na = extract_comparison_metric_val(bundle_a, "net_income", yr)
+                rb = extract_comparison_metric_val(bundle_b, "revenue", yr)
+                nb = extract_comparison_metric_val(bundle_b, "net_income", yr)
+                rev_rows.append(
+                    {
+                        "Fiscal Year": yr_str,
+                        "Series": f"{ticker_a} Revenue",
+                        "Amount ($B)": ra,
+                    }
+                )
+                rev_rows.append(
+                    {
+                        "Fiscal Year": yr_str,
+                        "Series": f"{ticker_a} Net Income",
+                        "Amount ($B)": na,
+                    }
+                )
+                rev_rows.append(
+                    {
+                        "Fiscal Year": yr_str,
+                        "Series": f"{ticker_b} Revenue",
+                        "Amount ($B)": rb,
+                    }
+                )
+                rev_rows.append(
+                    {
+                        "Fiscal Year": yr_str,
+                        "Series": f"{ticker_b} Net Income",
+                        "Amount ($B)": nb,
+                    }
+                )
+            if rev_rows:
+                df_rev = pd.DataFrame(rev_rows)
+                chart_rev = (
+                    alt.Chart(df_rev)
+                    .mark_line(point=True, strokeWidth=2.5)
+                    .encode(
+                        x=alt.X("Fiscal Year:O", title="Fiscal Year"),
+                        y=alt.Y("Amount ($B):Q", title="Amount ($ Billions)"),
+                        color=alt.Color("Series:N", title="Metric"),
+                        tooltip=[
+                            "Fiscal Year",
+                            "Series",
+                            alt.Tooltip("Amount ($B):Q", format="$,.2f"),
+                        ],
+                    )
+                    .properties(height=340)
+                )
+                st.altair_chart(chart_rev, use_container_width=True)
+
+        with v_tab3:
+            ratios_a = bundle_a.get("Financial Ratios", pd.DataFrame())
+            ratios_b = bundle_b.get("Financial Ratios", pd.DataFrame())
+            all_metrics = sorted(
+                list(
+                    set(
+                        ratios_a["Ratio / Metric"].dropna().tolist()
+                        + ratios_b["Ratio / Metric"].dropna().tolist()
+                    )
+                )
+            )
+            if not all_metrics:
+                all_metrics = ["Current Ratio", "Operating Profit Margin"]
+            def_m = (
+                "Operating Profit Margin"
+                if "Operating Profit Margin" in all_metrics
+                else all_metrics[0]
+            )
+            chosen_ratio = st.selectbox(
+                "Select Financial Ratio to Benchmark",
+                all_metrics,
+                index=all_metrics.index(def_m),
+                key="cmp_ratio_choice",
+            )
+            sub_a = ratios_a[ratios_a["Ratio / Metric"] == chosen_ratio]
+            sub_b = ratios_b[ratios_b["Ratio / Metric"] == chosen_ratio]
+            ratio_chart_rows = []
+            if not sub_a.empty:
+                for y in timeframe_years:
+                    y_str = str(y)
+                    val = (
+                        safe_float(sub_a[y_str].iloc[0])
+                        if y_str in sub_a.columns
+                        else 0.0
+                    )
+                    ratio_chart_rows.append(
+                        {
+                            "Fiscal Year": y_str,
+                            "Company": ticker_a,
+                            "Value": val,
+                        }
+                    )
+            if not sub_b.empty:
+                for y in timeframe_years:
+                    y_str = str(y)
+                    val = (
+                        safe_float(sub_b[y_str].iloc[0])
+                        if y_str in sub_b.columns
+                        else 0.0
+                    )
+                    ratio_chart_rows.append(
+                        {
+                            "Fiscal Year": y_str,
+                            "Company": ticker_b,
+                            "Value": val,
+                        }
+                    )
+            if ratio_chart_rows:
+                df_rc = pd.DataFrame(ratio_chart_rows)
+                chart_r = (
+                    alt.Chart(df_rc)
+                    .mark_line(point=True, strokeWidth=3)
+                    .encode(
+                        x=alt.X("Fiscal Year:O", title="Fiscal Year"),
+                        y=alt.Y("Value:Q", title=chosen_ratio),
+                        color=alt.Color(
+                            "Company:N",
+                            scale=alt.Scale(range=[COLOR_NAVY, COLOR_CRIMSON]),
+                        ),
+                        tooltip=[
+                            "Fiscal Year",
+                            "Company",
+                            alt.Tooltip("Value:Q", format=".2f"),
+                        ],
+                    )
+                    .properties(height=340)
+                )
+                st.altair_chart(chart_r, use_container_width=True)
+
+        with v_tab4:
+            pn_rows = []
+            for yr in timeframe_years:
+                pna = extract_comparison_metric_val(
+                    bundle_a, "sentiment", yr
+                )
+                pnb = extract_comparison_metric_val(
+                    bundle_b, "sentiment", yr
+                )
+                pn_rows.append(
+                    {
+                        "Fiscal Year": str(yr),
                         "Company": ticker_a,
-                        "Value": safe_float(sub_a[y].iloc[0]),
+                        "P/N Ratio": pna,
                     }
                 )
-        if not sub_b.empty:
-            for y in year_cols:
-                ratio_chart_rows.append(
+                pn_rows.append(
                     {
-                        "Fiscal Year": y,
+                        "Fiscal Year": str(yr),
                         "Company": ticker_b,
-                        "Value": safe_float(sub_b[y].iloc[0]),
+                        "P/N Ratio": pnb,
                     }
                 )
-        if ratio_chart_rows:
-            df_rc = pd.DataFrame(ratio_chart_rows)
-            chart_r = (
-                alt.Chart(df_rc)
-                .mark_line(point=True, strokeWidth=3)
-                .encode(
-                    x=alt.X("Fiscal Year:O", title="Fiscal Year"),
-                    y=alt.Y("Value:Q", title=chosen_ratio),
-                    color=alt.Color(
-                        "Company:N",
-                        scale=alt.Scale(range=[COLOR_NAVY, COLOR_CRIMSON]),
-                    ),
-                    tooltip=[
-                        "Fiscal Year",
-                        "Company",
-                        alt.Tooltip("Value:Q", format=".2f"),
-                    ],
+            if pn_rows:
+                df_pn = pd.DataFrame(pn_rows)
+                chart_pn = (
+                    alt.Chart(df_pn)
+                    .mark_bar(opacity=0.85)
+                    .encode(
+                        x=alt.X("Fiscal Year:O", title="Fiscal Year"),
+                        y=alt.Y(
+                            "P/N Ratio:Q",
+                            title="MD&A Sentiment P/N Ratio",
+                        ),
+                        color=alt.Color(
+                            "Company:N",
+                            scale=alt.Scale(range=[COLOR_NAVY, COLOR_CRIMSON]),
+                        ),
+                        xOffset="Company:N",
+                        tooltip=["Fiscal Year", "Company", "P/N Ratio:Q"],
+                    )
+                    .properties(height=340)
                 )
-                .properties(height=340)
-            )
-            st.altair_chart(chart_r, use_container_width=True)
-
-    with v_tab4:
-        pn_rows = []
-        for _, r in sum_a.iterrows():
-            pn_rows.append(
-                {
-                    "Fiscal Year": str(r["Fiscal Year"]),
-                    "Company": ticker_a,
-                    "P/N Ratio": safe_float(r["MD&A Sentiment P/N"]),
-                }
-            )
-        for _, r in sum_b.iterrows():
-            pn_rows.append(
-                {
-                    "Fiscal Year": str(r["Fiscal Year"]),
-                    "Company": ticker_b,
-                    "P/N Ratio": safe_float(r["MD&A Sentiment P/N"]),
-                }
-            )
-        if pn_rows:
-            df_pn = pd.DataFrame(pn_rows)
-            chart_pn = (
-                alt.Chart(df_pn)
-                .mark_bar(opacity=0.85)
-                .encode(
-                    x=alt.X("Fiscal Year:O", title="Fiscal Year"),
-                    y=alt.Y(
-                        "P/N Ratio:Q",
-                        title="MD&A Sentiment P/N Ratio",
-                    ),
-                    color=alt.Color(
-                        "Company:N",
-                        scale=alt.Scale(range=[COLOR_NAVY, COLOR_CRIMSON]),
-                    ),
-                    xOffset="Company:N",
-                    tooltip=["Fiscal Year", "Company", "P/N Ratio:Q"],
-                )
-                .properties(height=340)
-            )
-            st.altair_chart(chart_pn, use_container_width=True)
+                st.altair_chart(chart_pn, use_container_width=True)
 
     st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
 

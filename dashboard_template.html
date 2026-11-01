@@ -463,15 +463,71 @@
                 <!-- Comparison KPI Cards -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5" id="comp-kpi-grid"></div>
 
-                <!-- Comparison Chart -->
-                <div class="space-y-2 pt-2">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-sm font-bold text-slate-800">10-Year Cumulative Stock Return (%) Benchmark (2016–2025)</h3>
-                        <span class="text-xs text-slate-500">Normalized % return indexed to FY2016 baseline</span>
+                <!-- Comparison Chart & Interactive Graph Controls -->
+                <div class="space-y-3 pt-2">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800" id="comp-chart-heading">10-Year Cumulative Stock Return (%) Benchmark</h3>
+                            <p class="text-xs text-slate-500 mt-0.5" id="comp-chart-subheading">Normalized % return indexed to baseline over selected timeframe.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <div class="flex items-center gap-1.5">
+                                <label for="comp-metric-select" class="text-xs font-bold text-slate-600">Metric:</label>
+                                <select id="comp-metric-select" onchange="renderComparisonTab()" class="text-xs border border-slate-300 rounded px-2.5 py-1.5 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600">
+                                    <option value="cum_return" selected>📈 Cumulative Stock Return (%)</option>
+                                    <option value="stock_price">💵 Closing Stock Price ($)</option>
+                                    <option value="revenue">💰 Annual Revenue ($B)</option>
+                                    <option value="net_income">💹 Net Income ($B)</option>
+                                    <option value="op_margin">📊 Operating Profit Margin (%)</option>
+                                    <option value="roe">🎯 Return on Equity (ROE %)</option>
+                                    <option value="gross_margin">💎 Gross Profit Margin (%)</option>
+                                    <option value="net_margin">✨ Net Profit Margin (%)</option>
+                                    <option value="current_ratio">💧 Current Ratio (x)</option>
+                                    <option value="quick_ratio">⚡ Quick Ratio (Acid-Test)</option>
+                                    <option value="debt_to_equity">⚖️ Debt-to-Equity Ratio</option>
+                                    <option value="debt_to_assets">🛡️ Debt-to-Assets Ratio</option>
+                                    <option value="asset_turnover">🔄 Asset Turnover Ratio</option>
+                                    <option value="sentiment">🧠 MD&A Sentiment (P/N Ratio)</option>
+                                    <option value="free_cash_flow">💸 Free Cash Flow ($B)</option>
+                                    <option value="ocf">🌊 Operating Cash Flow ($B)</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <label for="comp-start-year" class="text-xs font-bold text-slate-600">From:</label>
+                                <select id="comp-start-year" onchange="renderComparisonTab()" class="text-xs border border-slate-300 rounded px-2 py-1.5 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600">
+                                    <option value="2016" selected>2016</option>
+                                    <option value="2017">2017</option>
+                                    <option value="2018">2018</option>
+                                    <option value="2019">2019</option>
+                                    <option value="2020">2020</option>
+                                    <option value="2021">2021</option>
+                                    <option value="2022">2022</option>
+                                    <option value="2023">2023</option>
+                                    <option value="2024">2024</option>
+                                    <option value="2025">2025</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <label for="comp-end-year" class="text-xs font-bold text-slate-600">To:</label>
+                                <select id="comp-end-year" onchange="renderComparisonTab()" class="text-xs border border-slate-300 rounded px-2 py-1.5 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600">
+                                    <option value="2016">2016</option>
+                                    <option value="2017">2017</option>
+                                    <option value="2018">2018</option>
+                                    <option value="2019">2019</option>
+                                    <option value="2020">2020</option>
+                                    <option value="2021">2021</option>
+                                    <option value="2022">2022</option>
+                                    <option value="2023">2023</option>
+                                    <option value="2024">2024</option>
+                                    <option value="2025" selected>2025</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                     <div class="h-80 w-full">
                         <canvas id="comparisonChart"></canvas>
                     </div>
+                    <div id="comp-chart-lead-badge" class="text-xs font-semibold text-slate-700 bg-slate-50 px-3.5 py-2 rounded-lg border border-slate-200"></div>
                 </div>
 
                 <!-- Comparison Table -->
@@ -1511,90 +1567,199 @@
             const dataB = window.FINANCIAL_DATA[tickB];
             if (!dataA || !dataB) return;
 
-            const sumA = dataA.sheets['Executive Summary'] || [];
-            const sumB = dataB.sheets['Executive Summary'] || [];
-            const lastA = sumA[sumA.length - 1] || {};
-            const lastB = sumB[sumB.length - 1] || {};
-            const firstA = sumA[0] || {};
-            const firstB = sumB[0] || {};
+            const METRIC_CONFIGS = {
+                cum_return: { title: 'Cumulative Stock Return (%)', unit: '%', type: 'percent', higherBetter: true },
+                stock_price: { title: 'Closing Stock Price ($)', unit: '$', type: 'currency', higherBetter: true },
+                revenue: { title: 'Annual Revenue ($ Billions)', unit: '$B', type: 'currencyB', higherBetter: true },
+                net_income: { title: 'Net Income ($ Billions)', unit: '$B', type: 'currencyB', higherBetter: true },
+                op_margin: { title: 'Operating Profit Margin (%)', unit: '%', type: 'percentFixed', higherBetter: true },
+                roe: { title: 'Return on Equity (ROE %)', unit: '%', type: 'percentFixed', higherBetter: true },
+                gross_margin: { title: 'Gross Profit Margin (%)', unit: '%', type: 'percentFixed', higherBetter: true },
+                net_margin: { title: 'Net Profit Margin (%)', unit: '%', type: 'percentFixed', higherBetter: true },
+                current_ratio: { title: 'Current Ratio (x)', unit: 'x', type: 'multiplier', higherBetter: true },
+                quick_ratio: { title: 'Quick Ratio (Acid-Test)', unit: 'x', type: 'multiplier', higherBetter: true },
+                debt_to_equity: { title: 'Debt-to-Equity Ratio', unit: 'x', type: 'multiplier', higherBetter: false },
+                debt_to_assets: { title: 'Debt-to-Assets Ratio', unit: 'x', type: 'multiplier', higherBetter: false },
+                asset_turnover: { title: 'Asset Turnover Ratio', unit: 'x', type: 'multiplier', higherBetter: true },
+                sentiment: { title: 'MD&A Sentiment (P/N Ratio)', unit: 'ratio', type: 'ratio', higherBetter: true },
+                free_cash_flow: { title: 'Free Cash Flow ($ Billions)', unit: '$B', type: 'currencyB', higherBetter: true },
+                ocf: { title: 'Operating Cash Flow ($ Billions)', unit: '$B', type: 'currencyB', higherBetter: true }
+            };
 
-            const p0_a = firstA['Stock Price ($)'] || 1.0;
-            const p10_a = lastA['Stock Price ($)'] || 0.0;
-            const retA = ((p10_a - p0_a) / p0_a) * 100.0;
+            function getMetricVal(data, key, yr, basePrice) {
+                if (!data || !data.sheets) return 0;
+                const yrStr = yr.toString();
+                const sumRows = data.sheets['Executive Summary'] || [];
+                const sumRow = sumRows.find(r => (r['Fiscal Year'] || r['year']) == yr) || {};
+                const ratRows = data.sheets['Financial Ratios'] || [];
+                const cfRows = data.sheets['Cash Flows'] || [];
 
-            const p0_b = firstB['Stock Price ($)'] || 1.0;
-            const p10_b = lastB['Stock Price ($)'] || 0.0;
-            const retB = ((p10_b - p0_b) / p0_b) * 100.0;
+                if (key === 'cum_return') {
+                    const p = sumRow['Stock Price ($)'] || 0;
+                    return basePrice > 0 ? (((p - basePrice) / basePrice) * 100) : 0;
+                }
+                if (key === 'stock_price') return sumRow['Stock Price ($)'] || 0;
+                if (key === 'revenue') {
+                    return sumRow['Revenue ($B)'] || (sumRow['Total Net Sales / Revenue'] ? sumRow['Total Net Sales / Revenue'] / 1000 : 0);
+                }
+                if (key === 'net_income') {
+                    return sumRow['Net Income ($B)'] || (sumRow['Net Income'] ? sumRow['Net Income'] / 1000 : 0);
+                }
+                if (key === 'op_margin') return sumRow['Operating Margin (%)'] || 0;
+                if (key === 'roe') {
+                    let v = sumRow['Return on Equity (%)'] || 0;
+                    if (Math.abs(v) > 0 && Math.abs(v) < 5.0) v *= 100.0;
+                    return v;
+                }
+                if (key === 'current_ratio') return sumRow['Current Ratio (x)'] || 0;
+                if (key === 'debt_to_equity') return sumRow['Debt-to-Equity (x)'] || 0;
+                if (key === 'sentiment') return sumRow['MD&A Sentiment P/N'] || 0;
 
-            const revA = lastA['Revenue ($B)'] || (lastA['Total Net Sales / Revenue'] ? (lastA['Total Net Sales / Revenue'] / 1000) : 0);
-            const revB = lastB['Revenue ($B)'] || (lastB['Total Net Sales / Revenue'] ? (lastB['Total Net Sales / Revenue'] / 1000) : 0);
-            const niA = lastA['Net Income ($B)'] || (lastA['Net Income'] ? (lastA['Net Income'] / 1000) : 0);
-            const niB = lastB['Net Income ($B)'] || (lastB['Net Income'] ? (lastB['Net Income'] / 1000) : 0);
-            const roeA = lastA['Return on Equity (%)'] || 0;
-            const roeB = lastB['Return on Equity (%)'] || 0;
+                const ratioMap = {
+                    'gross_margin': 'Gross Profit Margin',
+                    'net_margin': 'Net Profit Margin',
+                    'quick_ratio': 'Quick Ratio (Acid-Test)',
+                    'debt_to_assets': 'Debt-to-Assets Ratio',
+                    'asset_turnover': 'Asset Turnover Ratio'
+                };
+                if (ratioMap[key]) {
+                    const rRow = ratRows.find(r => r['Ratio / Metric'] === ratioMap[key]);
+                    if (rRow && rRow[yrStr] !== undefined) {
+                        let v = typeof rRow[yrStr] === 'number' ? rRow[yrStr] : parseFloat(rRow[yrStr]) || 0;
+                        if (rRow['Format'] === 'percent' && Math.abs(v) > 0 && Math.abs(v) < 5.0) v *= 100.0;
+                        return v;
+                    }
+                }
 
-            const winRet = retA >= retB ? tickA : tickB;
-            const winRev = revA >= revB ? tickA : tickB;
-            const winNi = niA >= niB ? tickA : tickB;
-            const winRoe = roeA >= roeB ? tickA : tickB;
+                if (key === 'ocf' || key === 'free_cash_flow') {
+                    const ocfRow = cfRows.find(r => r['Line Item'] && r['Line Item'].includes('Operating Activities'));
+                    const capexRow = cfRows.find(r => r['Line Item'] && r['Line Item'].includes('Capital Expenditures'));
+                    const ocfVal = (ocfRow && ocfRow[yrStr]) ? (parseFloat(ocfRow[yrStr]) || 0) / 1000 : 0;
+                    if (key === 'ocf') return ocfVal;
+                    const capexVal = (capexRow && capexRow[yrStr]) ? Math.abs(parseFloat(capexRow[yrStr]) || 0) / 1000 : 0;
+                    return ocfVal - capexVal;
+                }
+                return 0;
+            }
+
+            const metricKey = document.getElementById('comp-metric-select') ? document.getElementById('comp-metric-select').value : 'cum_return';
+            const mCfg = METRIC_CONFIGS[metricKey] || METRIC_CONFIGS['cum_return'];
+
+            const rawStart = document.getElementById('comp-start-year') ? parseInt(document.getElementById('comp-start-year').value) : 2016;
+            const rawEnd = document.getElementById('comp-end-year') ? parseInt(document.getElementById('comp-end-year').value) : 2025;
+            const startYr = Math.min(rawStart, rawEnd);
+            const endYr = Math.max(rawStart, rawEnd);
+
+            document.getElementById('comp-th-a').textContent = `${tickA} (FY${endYr.toString().slice(-2)})`;
+            document.getElementById('comp-th-b').textContent = `${tickB} (FY${endYr.toString().slice(-2)})`;
+
+            // Update heading & description
+            document.getElementById('comp-chart-heading').textContent = `${mCfg.title} Benchmark (${startYr}–${endYr})`;
+            document.getElementById('comp-chart-subheading').textContent = `Historical trajectory comparison between ${tickA} and ${tickB} from FY${startYr} to FY${endYr}.`;
+
+            // Timeframe metrics for KPI cards
+            const pStartA = getMetricVal(dataA, 'stock_price', startYr, 0);
+            const pEndA = getMetricVal(dataA, 'stock_price', endYr, 0);
+            const retTimeframeA = pStartA > 0 ? ((pEndA - pStartA) / pStartA * 100) : 0;
+
+            const pStartB = getMetricVal(dataB, 'stock_price', startYr, 0);
+            const pEndB = getMetricVal(dataB, 'stock_price', endYr, 0);
+            const retTimeframeB = pStartB > 0 ? ((pEndB - pStartB) / pStartB * 100) : 0;
+
+            const revEndA = getMetricVal(dataA, 'revenue', endYr, 0);
+            const revEndB = getMetricVal(dataB, 'revenue', endYr, 0);
+            const niEndA = getMetricVal(dataA, 'net_income', endYr, 0);
+            const niEndB = getMetricVal(dataB, 'net_income', endYr, 0);
+            const roeEndA = getMetricVal(dataA, 'roe', endYr, 0);
+            const roeEndB = getMetricVal(dataB, 'roe', endYr, 0);
+
+            const winRet = retTimeframeA >= retTimeframeB ? tickA : tickB;
+            const winRev = revEndA >= revEndB ? tickA : tickB;
+            const winNi = niEndA >= niEndB ? tickA : tickB;
+            const winRoe = roeEndA >= roeEndB ? tickA : tickB;
+
+            const retTitle = (endYr > startYr) ? `${endYr - startYr}-Yr Stock Return` : `FY${endYr} Stock Return`;
 
             // Render KPI cards
             const kpiGrid = document.getElementById('comp-kpi-grid');
             kpiGrid.innerHTML = `
                 <div class="kpi-card">
-                    <div class="kpi-title">10-Yr Stock Return</div>
+                    <div class="kpi-title">${retTitle} (${startYr}–${endYr})</div>
                     <div class="flex justify-between text-xs mt-1 font-semibold text-slate-800">
-                        <span>${tickA}: ${retA.toFixed(1)}%</span>
-                        <span>${tickB}: ${retB.toFixed(1)}%</span>
+                        <span>${tickA}: ${retTimeframeA >= 0 ? '+' : ''}${retTimeframeA.toFixed(1)}%</span>
+                        <span>${tickB}: ${retTimeframeB >= 0 ? '+' : ''}${retTimeframeB.toFixed(1)}%</span>
                     </div>
-                    <div class="kpi-delta ${retA >= retB ? 'delta-pos' : 'delta-neg'} mt-1.5 font-bold">
-                        🏆 ${winRet} (${Math.abs(retA - retB).toFixed(1)}% lead)
+                    <div class="kpi-delta ${retTimeframeA >= retTimeframeB ? 'delta-pos' : 'delta-neg'} mt-1.5 font-bold">
+                        🏆 ${winRet} (${Math.abs(retTimeframeA - retTimeframeB).toFixed(1)}% lead)
                     </div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-title">FY2025 Annual Revenue</div>
+                    <div class="kpi-title">FY${endYr} Annual Revenue</div>
                     <div class="flex justify-between text-xs mt-1 font-semibold text-slate-800">
-                        <span>${tickA}: $${revA.toFixed(1)}B</span>
-                        <span>${tickB}: $${revB.toFixed(1)}B</span>
+                        <span>${tickA}: $${revEndA.toFixed(1)}B</span>
+                        <span>${tickB}: $${revEndB.toFixed(1)}B</span>
                     </div>
-                    <div class="kpi-delta ${revA >= revB ? 'delta-pos' : 'delta-neg'} mt-1.5 font-bold">
-                        🏆 ${winRev} ($${Math.abs(revA - revB).toFixed(1)}B lead)
+                    <div class="kpi-delta ${revEndA >= revEndB ? 'delta-pos' : 'delta-neg'} mt-1.5 font-bold">
+                        🏆 ${winRev} ($${Math.abs(revEndA - revEndB).toFixed(1)}B lead)
                     </div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-title">FY2025 Net Income</div>
+                    <div class="kpi-title">FY${endYr} Net Income</div>
                     <div class="flex justify-between text-xs mt-1 font-semibold text-slate-800">
-                        <span>${tickA}: $${niA.toFixed(1)}B</span>
-                        <span>${tickB}: $${niB.toFixed(1)}B</span>
+                        <span>${tickA}: $${niEndA.toFixed(1)}B</span>
+                        <span>${tickB}: $${niEndB.toFixed(1)}B</span>
                     </div>
-                    <div class="kpi-delta ${niA >= niB ? 'delta-pos' : 'delta-neg'} mt-1.5 font-bold">
-                        🏆 ${winNi} ($${Math.abs(niA - niB).toFixed(1)}B lead)
+                    <div class="kpi-delta ${niEndA >= niEndB ? 'delta-pos' : 'delta-neg'} mt-1.5 font-bold">
+                        🏆 ${winNi} ($${Math.abs(niEndA - niEndB).toFixed(1)}B lead)
                     </div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-title">Return on Equity (ROE)</div>
+                    <div class="kpi-title">FY${endYr} Return on Equity</div>
                     <div class="flex justify-between text-xs mt-1 font-semibold text-slate-800">
-                        <span>${tickA}: ${roeA.toFixed(1)}%</span>
-                        <span>${tickB}: ${roeB.toFixed(1)}%</span>
+                        <span>${tickA}: ${roeEndA.toFixed(1)}%</span>
+                        <span>${tickB}: ${roeEndB.toFixed(1)}%</span>
                     </div>
-                    <div class="kpi-delta ${roeA >= roeB ? 'delta-pos' : 'delta-neg'} mt-1.5 font-bold">
-                        🏆 ${winRoe} (${Math.abs(roeA - roeB).toFixed(1)}% lead)
+                    <div class="kpi-delta ${roeEndA >= roeEndB ? 'delta-pos' : 'delta-neg'} mt-1.5 font-bold">
+                        🏆 ${winRoe} (${Math.abs(roeEndA - roeEndB).toFixed(1)}% lead)
                     </div>
                 </div>
             `;
 
-            // Render Comparison Chart (Normalized 10-Yr Cumulative Returns)
-            const ctx = document.getElementById('comparisonChart').getContext('2d');
-            const labels = sumA.map(r => r['Fiscal Year'] || r['year']);
-            const cumDataA = sumA.map(r => {
-                const p = r['Stock Price ($)'] || 0;
-                return p0_a > 0 ? (((p - p0_a) / p0_a) * 100) : 0;
-            });
-            const cumDataB = sumB.map(r => {
-                const p = r['Stock Price ($)'] || 0;
-                return p0_b > 0 ? (((p - p0_b) / p0_b) * 100) : 0;
-            });
+            // Prepare Chart series
+            const filteredYears = [];
+            for (let y = startYr; y <= endYr; y++) {
+                filteredYears.push(y);
+            }
+            const labels = filteredYears.map(y => y.toString());
 
+            const seriesA = filteredYears.map(yr => getMetricVal(dataA, metricKey, yr, pStartA));
+            const seriesB = filteredYears.map(yr => getMetricVal(dataB, metricKey, yr, pStartB));
+
+            // Axis formatting
+            let yTickCallback = v => v;
+            let tooltipCallback = ctx => `${ctx.dataset.label}: ${ctx.parsed.y}`;
+
+            if (mCfg.type === 'percent') {
+                yTickCallback = v => (v >= 0 ? '+' : '') + v.toFixed(0) + '%';
+                tooltipCallback = ctx => `${ctx.dataset.label}: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}%`;
+            } else if (mCfg.type === 'percentFixed') {
+                yTickCallback = v => v.toFixed(0) + '%';
+                tooltipCallback = ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%`;
+            } else if (mCfg.type === 'currency') {
+                yTickCallback = v => '$' + v.toFixed(0);
+                tooltipCallback = ctx => `${ctx.dataset.label}: $${ctx.parsed.y.toFixed(2)}`;
+            } else if (mCfg.type === 'currencyB') {
+                yTickCallback = v => '$' + v.toFixed(0) + 'B';
+                tooltipCallback = ctx => `${ctx.dataset.label}: $${ctx.parsed.y.toFixed(2)}B`;
+            } else if (mCfg.type === 'multiplier') {
+                yTickCallback = v => v.toFixed(1) + 'x';
+                tooltipCallback = ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}x`;
+            } else if (mCfg.type === 'ratio') {
+                yTickCallback = v => v.toFixed(2);
+                tooltipCallback = ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(4)}`;
+            }
+
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
             if (comparisonChartInstance) {
                 comparisonChartInstance.destroy();
             }
@@ -1605,8 +1770,8 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: `${tickA} Cumulative Return (%)`,
-                            data: cumDataA,
+                            label: `${tickA} ${mCfg.title}`,
+                            data: seriesA,
                             borderColor: '#1F4E79',
                             backgroundColor: 'rgba(31, 78, 121, 0.1)',
                             borderWidth: 3,
@@ -1615,8 +1780,8 @@
                             tension: 0.2
                         },
                         {
-                            label: `${tickB} Cumulative Return (%)`,
-                            data: cumDataB,
+                            label: `${tickB} ${mCfg.title}`,
+                            data: seriesB,
                             borderColor: '#C00000',
                             backgroundColor: 'rgba(192, 0, 0, 0.1)',
                             borderWidth: 3,
@@ -1632,7 +1797,7 @@
                     scales: {
                         x: { grid: { display: false } },
                         y: {
-                            ticks: { callback: v => (v >= 0 ? '+' : '') + v + '%' },
+                            ticks: { callback: yTickCallback },
                             grid: { color: '#E2E8F0' }
                         }
                     },
@@ -1640,12 +1805,35 @@
                         legend: { position: 'top' },
                         tooltip: {
                             callbacks: {
-                                label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}%`
+                                label: tooltipCallback
                             }
                         }
                     }
                 }
             });
+
+            // Lead Badge Callout
+            const endValA = seriesA[seriesA.length - 1] || 0;
+            const endValB = seriesB[seriesB.length - 1] || 0;
+            const diffVal = Math.abs(endValA - endValB);
+            const isALead = mCfg.higherBetter ? (endValA >= endValB) : (endValA <= endValB);
+            const leadTick = isALead ? tickA : tickB;
+            const leadVal = isALead ? endValA : endValB;
+            const trailVal = isALead ? endValB : endValA;
+
+            function fmtBadge(v) {
+                if (mCfg.type === 'percent') return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+                if (mCfg.type === 'percentFixed') return v.toFixed(2) + '%';
+                if (mCfg.type === 'currency') return '$' + v.toFixed(2);
+                if (mCfg.type === 'currencyB') return '$' + v.toFixed(2) + 'B';
+                if (mCfg.type === 'multiplier') return v.toFixed(2) + 'x';
+                return v.toFixed(4);
+            }
+
+            const leadBadgeEl = document.getElementById('comp-chart-lead-badge');
+            if (leadBadgeEl) {
+                leadBadgeEl.innerHTML = `📌 <b>FY${endYr} Benchmark Result</b>: <span class="font-bold text-blue-900">${leadTick}</span> leads in <b>${mCfg.title}</b> with ${fmtBadge(leadVal)} vs ${fmtBadge(trailVal)} (${fmtBadge(diffVal)} margin across FY${startYr}–FY${endYr}).`;
+            }
 
             // Render Comparison Table for FY2025 Ratios
             const ratiosA = dataA.sheets['Financial Ratios'] || [];

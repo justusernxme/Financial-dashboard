@@ -408,6 +408,48 @@ class TestStreamlitApp(unittest.TestCase):
         self.assertIn("2025_AAPL", merged.columns)
         self.assertIn("2025_MSFT", merged.columns)
 
+    def test_extract_comparison_metric_val(self) -> None:
+        """Verify metric extraction for customizable comparison graph."""
+        from app import (
+            COMPARISON_METRIC_CONFIG,
+            extract_comparison_metric_val,
+            load_company_data_bundle,
+        )
+
+        bundle = load_company_data_bundle("AAPL")
+        self.assertTrue(len(COMPARISON_METRIC_CONFIG) >= 14)
+
+        # Test stock price and revenue
+        p_2016 = extract_comparison_metric_val(bundle, "stock_price", 2016)
+        p_2025 = extract_comparison_metric_val(bundle, "stock_price", 2025)
+        self.assertGreater(p_2025, p_2016)
+
+        rev_2025 = extract_comparison_metric_val(bundle, "revenue", 2025)
+        self.assertGreater(rev_2025, 400.0)
+
+        # Test ROE percentage scaling
+        roe_2025 = extract_comparison_metric_val(bundle, "roe", 2025)
+        self.assertGreater(roe_2025, 50.0)
+
+        # Test Cash Flow metrics
+        ocf_2025 = extract_comparison_metric_val(bundle, "ocf", 2025)
+        fcf_2025 = extract_comparison_metric_val(
+            bundle, "free_cash_flow", 2025
+        )
+        self.assertGreater(ocf_2025, 100.0)
+        self.assertGreater(fcf_2025, 50.0)
+
+        # Test Sentiment metric
+        sent_2025 = extract_comparison_metric_val(bundle, "sentiment", 2025)
+        self.assertGreater(sent_2025, 0.5)
+
+        # Test custom generated ticker (NVDA)
+        nvda_bundle = load_company_data_bundle("NVDA")
+        nvda_rev = extract_comparison_metric_val(
+            nvda_bundle, "revenue", 2025
+        )
+        self.assertGreater(nvda_rev, 10.0)
+
 
 if __name__ == "__main__":
     unittest.main()
