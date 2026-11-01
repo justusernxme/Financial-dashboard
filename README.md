@@ -182,7 +182,3 @@ python -m unittest discover -p "test_*.py"
 
 All unit tests pass cleanly with 100% assertion success and strict PEP 8
 compliance ($\le 79$ character line length limit across all codebase files).
-# Financial-dashboard
-# Financial-dashboard
-# Financial-dashboard
-# Financial-dashboard

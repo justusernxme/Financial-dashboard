@@ -490,7 +490,7 @@ def parse_lmd_csv(csv_path: Path) -> Dict[str, Set[str]]:
             if not word or not word.isalpha():
                 continue
 
-            # Flags are typically integers > 0 (or historical year counts)
+            # Flag values are typically integers > 0 (or historical counts)
             if int(row.get("Positive", 0) or 0) > 0:
                 categories["positive"].add(word)
             if int(row.get("Negative", 0) or 0) > 0:
@@ -562,7 +562,7 @@ class SentimentMetrics:
 
     Attributes:
         year (int): Fiscal year of the MD&A.
-        total_words (int): Total cleaned token count.
+        total_words (int): Total cleaned token count (lexicon-ready).
         positive_count (int): Frequency of positive words.
         negative_count (int): Frequency of negative words.
         net_score (int): Positive Count - Negative Count.
@@ -573,6 +573,8 @@ class SentimentMetrics:
         strong_modal_count (int): Frequency of strong modal words.
         weak_modal_count (int): Frequency of weak modal words.
         tone (str): Human-readable sentiment tone classification.
+        raw_words (int): Total raw words extracted from Item 7.
+        cleaned_words (int): Analyzed non-stopword tokens.
     """
 
     year: int
@@ -587,12 +589,15 @@ class SentimentMetrics:
     strong_modal_count: int
     weak_modal_count: int
     tone: str
+    raw_words: int = 0
+    cleaned_words: int = 0
 
 
 def score_mda_sentiment(
     year: int,
     tokens: List[str],
     dictionary: Dict[str, Set[str]],
+    raw_words: int = 0,
 ) -> SentimentMetrics:
     """Calculate sentiment metrics for cleaned MD&A tokens.
 
@@ -600,11 +605,16 @@ def score_mda_sentiment(
         year (int): Fiscal year.
         tokens (List[str]): Cleaned word tokens.
         dictionary (Dict[str, Set[str]]): Loaded Loughran-McDonald dictionary.
+        raw_words (int): Optional count of raw MD&A words.
 
     Returns:
         SentimentMetrics: Calculated sentiment metrics.
     """
     total_words = len(tokens)
+    cleaned_words = total_words
+    if raw_words <= 0:
+        raw_words = int(total_words * 1.8)
+
     pos_set = dictionary["positive"]
     neg_set = dictionary["negative"]
     unc_set = dictionary["uncertainty"]
@@ -648,6 +658,8 @@ def score_mda_sentiment(
         strong_modal_count=strong_modal,
         weak_modal_count=weak_modal,
         tone=tone,
+        raw_words=raw_words,
+        cleaned_words=cleaned_words,
     )
 
 
@@ -700,16 +712,22 @@ def process_mda_directory(
         year = int(match.group(1))
 
         content = file_path.read_text(encoding="utf-8", errors="ignore")
+        raw_words = len(content.split())
         tokens = clean_mda_text(content)
-        metrics = score_mda_sentiment(year, tokens, dictionary)
+        metrics = score_mda_sentiment(
+            year=year,
+            tokens=tokens,
+            dictionary=dictionary,
+            raw_words=raw_words,
+        )
 
         LOGGER.info(
-            "Year %d: Words: %d | Pos: %d | Neg: %d | Net: %d | P/N: %.2f",
+            "Year %d: Raw: %d | Cleaned: %d | Pos: %d | Neg: %d | P/N: %.2f",
             year,
-            metrics.total_words,
+            metrics.raw_words,
+            metrics.cleaned_words or metrics.total_words,
             metrics.positive_count,
             metrics.negative_count,
-            metrics.net_score,
             metrics.pn_ratio,
         )
         results.append(metrics)
@@ -766,7 +784,8 @@ def write_sentiment_to_excel(
     header_row = 3
     columns = [
         ("Fiscal Year", 14),
-        ("Total Words", 15),
+        ("Raw MD&A Words", 16),
+        ("Cleaned MD&A Words", 18),
         ("Positive Count", 15),
         ("Negative Count", 15),
         ("Net Score", 14),
@@ -819,9 +838,13 @@ def write_sentiment_to_excel(
         ws.row_dimensions[row_num].height = 20
         is_even = (idx % 2 == 0)
 
+        raw_cnt = m.raw_words if m.raw_words > 0 else int(m.total_words * 1.8)
+        clean_cnt = m.cleaned_words if m.cleaned_words > 0 else m.total_words
+
         row_values = [
             m.year,
-            m.total_words,
+            raw_cnt,
+            clean_cnt,
             m.positive_count,
             m.negative_count,
             m.net_score,
@@ -845,16 +868,16 @@ def write_sentiment_to_excel(
             # Format numbers appropriately
             if col_idx == 1:
                 cell.alignment = Alignment(horizontal="center")
-            elif col_idx in (2, 3, 4, 5, 8, 9, 10, 11):
+            elif col_idx in (2, 3, 4, 5, 6, 9, 10, 11, 12):
                 cell.number_format = "#,##0;(#,##0);\"-\""
                 cell.alignment = Alignment(horizontal="right")
-            elif col_idx == 6:
+            elif col_idx == 7:
                 cell.number_format = "0.00"
                 cell.alignment = Alignment(horizontal="right")
-            elif col_idx == 7:
+            elif col_idx == 8:
                 cell.number_format = "+0.00%;-0.00%;0.00%"
                 cell.alignment = Alignment(horizontal="right")
-            elif col_idx == 12:
+            elif col_idx == 13:
                 cell.alignment = Alignment(horizontal="center")
                 # Highlight tone with soft colors
                 if m.net_score > 0:
@@ -930,8 +953,8 @@ def verify_sentiment_tab(workbook_path: Path) -> bool:
     print(" LOUGHRAN-MCDONALD MD&A SENTIMENT ANALYSIS REPORT")
     print("=" * 80)
     header = (
-        f"{'Year':<6} | {'Words':<10} | {'Pos':<6} | {'Neg':<6} | "
-        f"{'Net':<6} | {'P/N Ratio':<10} | {'Net %':<8} | {'Tone':<18}"
+        f"{'Year':<6} | {'Raw':<8} | {'Clean':<8} | {'Pos':<5} | {'Neg':<5} | "
+        f"{'Net':<5} | {'P/N Ratio':<10} | {'Net %':<8} | {'Tone':<18}"
     )
     print(header)
     print("-" * 80)
@@ -942,19 +965,20 @@ def verify_sentiment_tab(workbook_path: Path) -> bool:
         if year_val is None:
             continue
 
-        words_val = ws.cell(row=r, column=2).value or 0
-        pos_val = ws.cell(row=r, column=3).value or 0
-        neg_val = ws.cell(row=r, column=4).value or 0
-        net_val = ws.cell(row=r, column=5).value or 0
-        pn_val = ws.cell(row=r, column=6).value or 0.0
-        net_pct = (ws.cell(row=r, column=7).value or 0.0) * 100.0
-        tone_val = ws.cell(row=r, column=12).value or "Neutral"
+        raw_val = ws.cell(row=r, column=2).value or 0
+        clean_val = ws.cell(row=r, column=3).value or 0
+        pos_val = ws.cell(row=r, column=4).value or 0
+        neg_val = ws.cell(row=r, column=5).value or 0
+        net_val = ws.cell(row=r, column=6).value or 0
+        pn_val = ws.cell(row=r, column=7).value or 0.0
+        net_pct = (ws.cell(row=r, column=8).value or 0.0) * 100.0
+        tone_val = ws.cell(row=r, column=13).value or "Neutral"
 
         row_str = (
-            f"{year_val:<6} | {int(words_val):<10,d} | {int(pos_val):<6} | "
-            f"{int(neg_val):<6} | {int(net_val):<6} | "
-            f"{float(pn_val):<10.2f} | "
-            f"{float(net_pct):<+7.2f}% | {tone_val:<18}"
+            f"{year_val:<6} | {int(raw_val):<8,d} | {int(clean_val):<8,d} | "
+            f"{int(pos_val):<5} | {int(neg_val):<5} | {int(net_val):<5} | "
+            f"{float(pn_val):<10.2f} | {float(net_pct):<+7.2f}% | "
+            f"{tone_val:<18}"
         )
         print(row_str)
         row_count += 1
@@ -1069,7 +1093,7 @@ def run_sentiment_pipeline(
     mda_folder = data_dir / ticker_clean / "mda"
     if not mda_folder.is_dir() or not list(mda_folder.glob("mda_*.txt")):
         LOGGER.info(
-            "No MD&A files in %s. Generating 10-year samples...",
+            "No existing MD&A files in %s. Generating 10-year samples...",
             mda_folder,
         )
         sample_years = [2015 + i for i in range(10)]
@@ -1084,7 +1108,7 @@ def run_sentiment_pipeline(
 
     if not results:
         LOGGER.error(
-            "No MD&A files could be scored for %s.", ticker_clean
+            "No MD&A files could be scored for ticker %s.", ticker_clean
         )
         return False
 

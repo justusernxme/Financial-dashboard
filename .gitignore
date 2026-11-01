@@ -22,3 +22,9 @@ Thumbs.db
 
 # Streamlit config
 .streamlit/
+
+# Raw SEC 10-K downloads
+data/**/10K_*.html
+data/**/10K_*.htm
+data/**/10K_*.txt
+sec-edgar-filings/

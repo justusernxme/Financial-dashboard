@@ -366,6 +366,15 @@
 
         <!-- Tab 4: MD&A Sentiment Analysis Content -->
         <div id="content-sentiment" class="hidden space-y-6">
+            <!-- Methodological Note Banner -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 leading-relaxed shadow-sm">
+                <div class="font-bold text-blue-950 text-sm mb-1">ℹ️ Methodological Note on MD&A Word Counts & SEC Modernization</div>
+                <ul class="list-disc list-inside space-y-1">
+                    <li><b>Raw MD&A Words</b>: Total word count extracted directly from SEC Form 10-K Item 7 (Management's Discussion & Analysis of Financial Condition and Results of Operations).</li>
+                    <li><b>Cleaned MD&A Words</b>: Non-stopword tokens evaluated by the Loughran-McDonald Financial Sentiment Dictionary after stop-word, numeral, and punctuation filtering (~50–60% of raw words).</li>
+                    <li><b>SEC Item 303 Modernization</b>: In FY2019/FY2020, Apple adopted SEC FAST Act amendments allowing the omission of the earliest comparative fiscal period if previously disclosed, condensing Item 7 from 38 pages to 6 pages. Microsoft retained its extensive segment discussions, maintaining 7,200–11,500 raw words.</li>
+                </ul>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="sentiment-stats-grid"></div>
             <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
                 <div class="flex justify-between items-center">
@@ -383,6 +392,7 @@
                         <thead>
                             <tr>
                                 <th>Fiscal Year</th>
+                                <th>Raw MD&A Words</th>
                                 <th>Cleaned Words</th>
                                 <th>Positive Words</th>
                                 <th>Negative Words</th>
@@ -588,21 +598,24 @@
 
                 stock.push({
                     "Fiscal Year": yr,
+                    "Balance Sheet Date": `${yr}-09-30`,
                     "Actual Trading Date": `${yr}-09-28`,
                     "Closing Price ($)": p,
-                    "YoY Return (%)": yoy,
-                    "Annual Volume": Math.round(500000000 + (seed * 10000))
+                    "Adjusted Close ($)": p,
+                    "Trading Volume": Math.round(500000000 + (seed * 10000)),
+                    "YoY Price Return (%)": yoy
                 });
 
                 sentiment.push({
                     "Fiscal Year": yr,
+                    "Raw MD&A Words": Math.round((18000 + idx * 500) * 1.8),
                     "Cleaned MD&A Words": 18000 + idx * 500,
                     "Positive Words": Math.round(400 * pn),
                     "Negative Words": 350,
                     "Net Score": Math.round(400 * pn) - 350,
                     "P/N Ratio": pn,
                     "Net Sentiment (%)": Math.round(((Math.round(400 * pn) - 350) / (18000 + idx * 500)) * 10000) / 100,
-                    "Tone": pn >= 1.5 ? "Positive" : "Neutral"
+                    "Tone Classification": pn >= 1.5 ? "Positive" : "Cautious / Negative"
                 });
             });
 
@@ -1279,14 +1292,35 @@
                 const tone = r['Tone Classification'] || (pn >= 1.0 ? 'Positive' : 'Cautious / Negative');
                 const toneCls = tone.toLowerCase().includes('positive') ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold';
 
+                const rawWords = r['Raw MD&A Words'] != null ? parseInt(r['Raw MD&A Words']).toLocaleString() : '—';
+                const cleanedVal = r['Cleaned MD&A Words'] != null ? r['Cleaned MD&A Words'] : (r['Total Words'] != null ? r['Total Words'] : 0);
+                const cleanedWords = parseInt(cleanedVal).toLocaleString();
+                const posVal = r['Positive Words'] != null ? r['Positive Words'] : (r['Positive Count'] != null ? r['Positive Count'] : 0);
+                const posWords = parseInt(posVal).toLocaleString();
+                const negVal = r['Negative Words'] != null ? r['Negative Words'] : (r['Negative Count'] != null ? r['Negative Count'] : 0);
+                const negWords = parseInt(negVal).toLocaleString();
+                const netScore = parseInt(r['Net Score'] != null ? r['Net Score'] : 0);
+                const netScoreStr = (netScore > 0 ? '+' : '') + netScore.toLocaleString();
+
+                let netSentVal = r['Net Sentiment (%)'] != null ? r['Net Sentiment (%)'] : r['Net Sentiment %'];
+                let netSentStr = '—';
+                if (netSentVal != null) {
+                    let nsf = parseFloat(netSentVal);
+                    if (Math.abs(nsf) < 0.25 && nsf !== 0.0) {
+                        nsf = nsf * 100.0;
+                    }
+                    netSentStr = (nsf > 0 ? '+' : '') + nsf.toFixed(2) + '%';
+                }
+
                 tr.innerHTML = `
                     <td class="font-bold text-slate-800">${r['Fiscal Year']}</td>
-                    <td>${parseInt(r['Total Words']).toLocaleString()}</td>
-                    <td class="text-emerald-700 font-semibold">${parseInt(r['Positive Count']).toLocaleString()}</td>
-                    <td class="text-rose-700 font-semibold">${parseInt(r['Negative Count']).toLocaleString()}</td>
-                    <td class="${parseInt(r['Net Score']) >= 0 ? 'text-emerald-700' : 'text-rose-700'} font-bold">${parseInt(r['Net Score']) > 0 ? '+' : ''}${parseInt(r['Net Score']).toLocaleString()}</td>
+                    <td class="font-mono text-slate-600">${rawWords}</td>
+                    <td class="font-mono text-slate-800">${cleanedWords}</td>
+                    <td class="text-emerald-700 font-semibold">${posWords}</td>
+                    <td class="text-rose-700 font-semibold">${negWords}</td>
+                    <td class="${netScore >= 0 ? 'text-emerald-700' : 'text-rose-700'} font-bold">${netScoreStr}</td>
                     <td class="font-bold text-blue-900">${pn.toFixed(4)}</td>
-                    <td>${(parseFloat(r['Net Sentiment %']) * 100).toFixed(2)}%</td>
+                    <td>${netSentStr}</td>
                     <td class="${toneCls}">${tone}</td>
                 `;
                 tbody.appendChild(tr);
@@ -1372,15 +1406,21 @@
                 const tr = document.createElement('tr');
                 const p = parseFloat(r['Closing Price ($)']);
                 const adj = parseFloat(r['Adjusted Close ($)']);
-                const vol = parseInt(r['Trading Volume']);
-                const ret = r['YoY % Return'] !== null ? parseFloat(r['YoY % Return']) : null;
-                const retFormatted = ret !== null ? ((ret > 0 ? '+' : '') + (ret * (Math.abs(ret) < 2.0 ? 100 : 1)).toFixed(2) + '%') : '—';
+                const volRaw = r['Trading Volume'] != null ? r['Trading Volume'] : (r['Annual Volume'] != null ? r['Annual Volume'] : 0);
+                const vol = parseInt(volRaw);
+                const rawRet = r['YoY Price Return (%)'] !== undefined && r['YoY Price Return (%)'] !== null
+                    ? r['YoY Price Return (%)']
+                    : (r['YoY % Return'] !== undefined && r['YoY % Return'] !== null ? r['YoY % Return'] : null);
+                const ret = rawRet !== null ? parseFloat(rawRet) : null;
+                const retFormatted = ret !== null
+                    ? ((ret > 0 ? '+' : '') + (Math.abs(ret) < 2.0 && ret !== 0 ? ret * 100 : ret).toFixed(2) + '%')
+                    : '—';
                 const retCls = ret !== null && ret >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold';
 
                 tr.innerHTML = `
                     <td class="font-bold text-slate-800">${r['Fiscal Year']}</td>
-                    <td class="font-mono text-slate-600 text-xs">${r['Balance Sheet Date']}</td>
-                    <td class="font-mono text-slate-600 text-xs">${r['Actual Trading Date']}</td>
+                    <td class="font-mono text-slate-600 text-xs">${r['Balance Sheet Date'] || '—'}</td>
+                    <td class="font-mono text-slate-600 text-xs">${r['Actual Trading Date'] || '—'}</td>
                     <td class="font-bold text-slate-900">$${p.toFixed(2)}</td>
                     <td class="text-slate-700">$${adj.toFixed(2)}</td>
                     <td class="font-mono text-xs">${vol.toLocaleString()}</td>

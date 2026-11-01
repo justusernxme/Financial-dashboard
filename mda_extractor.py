@@ -49,7 +49,7 @@ MIN_MDA_CHAR_COUNT: int = 1000
 # and optional line break between Item 7 and Management's Discussion.
 ITEM_7_START_PATTERN: re.Pattern = re.compile(
     r"(?:^|\n)\s*(?:ITEM|Item)\s+7\s*[\.\:—\-–]?\s*\n?\s*"
-    r"Management(?:\'|’)?s?\s+Discussion\s+and\s+Analysis",
+    r"Management(?:[’\']s|s)?\s+Discussion\s+and\s+Analysis",
     re.IGNORECASE,
 )
 
@@ -135,7 +135,7 @@ def clean_html_to_text(html_content: str) -> str:
             "Install it via: pip install beautifulsoup4"
         )
 
-    # Prefer lxml parser for speed, otherwise fall back to html.parser
+    # Use lxml parser if available for speed; fall back to html.parser
     try:
         soup = BeautifulSoup(html_content, "lxml")
     except Exception:
@@ -413,8 +413,8 @@ def verify_extracted_mda_files(mda_files: List[Path]) -> bool:
     print(" MD&A EXTRACTION VERIFICATION REPORT")
     print("-" * 75)
     header = (
-        f"{'Filename':<24} | {'Size':<10} | "
-        f"{'Char Count':<14} | {'Status'}"
+        f"{'Filename':<24} | {'Size':<12} | "
+        f"{'Character Count':<18} | {'Status'}"
     )
     print(header)
     print("-" * 75)
@@ -425,8 +425,8 @@ def verify_extracted_mda_files(mda_files: List[Path]) -> bool:
     for file_path in mda_files:
         if not file_path.is_file():
             row = (
-                f"{file_path.name:<24} | {'0 B':<10} | "
-                f"{'0':<14} | [FAIL] Missing"
+                f"{file_path.name:<24} | {'0 B':<12} | "
+                f"{'0':<18} | [FAIL] Missing"
             )
             print(row)
             all_valid = False
@@ -437,8 +437,8 @@ def verify_extracted_mda_files(mda_files: List[Path]) -> bool:
 
         if size_bytes == 0:
             row = (
-                f"{file_path.name:<24} | {size_str:<10} | "
-                f"{'0':<14} | [FAIL] Empty"
+                f"{file_path.name:<24} | {size_str:<12} | "
+                f"{'0':<18} | [FAIL] Empty"
             )
             print(row)
             all_valid = False
@@ -449,8 +449,8 @@ def verify_extracted_mda_files(mda_files: List[Path]) -> bool:
         char_count_str = f"{len(text_content):,}"
 
         row = (
-            f"{file_path.name:<24} | {size_str:<10} | "
-            f"{char_count_str:<14} | [OK] Verified"
+            f"{file_path.name:<24} | {size_str:<12} | "
+            f"{char_count_str:<18} | [OK] Verified"
         )
         print(row)
         verified_count += 1

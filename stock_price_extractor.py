@@ -141,8 +141,7 @@ def get_balance_sheet_dates(
         data_dir (Path): Base data folder.
 
     Returns:
-        Dict[int, datetime.date]: Mapping from fiscal year to balance
-            sheet date.
+        Dict[int, datetime.date]: Mapping fiscal year to BS date.
     """
     ticker_clean = ticker.upper()
     dates: Dict[int, datetime.date] = {}
@@ -161,10 +160,10 @@ def get_balance_sheet_dates(
                             fy = int(item["fy"])
                             end_str = item.get("end")
                             if fy in years and end_str and fy not in dates:
-                                parsed_date = (
+                                parsed = (
                                     datetime.date.fromisoformat(end_str)
                                 )
-                                dates[fy] = parsed_date
+                                dates[fy] = parsed
             except Exception as exc:
                 LOGGER.warning("Could not parse cached SEC facts: %s", exc)
 
@@ -209,7 +208,7 @@ def fetch_price_for_date(
     target_date: datetime.date,
     ticker_obj: Optional[Any] = None,
 ) -> Tuple[datetime.date, float, float, int]:
-    """Retrieve closing price on target date or closest prior trading day.
+    """Retrieve closing stock price on target date or closest prior day.
 
     Queries a 7-day window prior to the balance sheet date to account for
     weekends and public market holidays.
@@ -285,10 +284,9 @@ def generate_mock_stock_prices(
 
     for idx, yr in enumerate(sorted_years):
         bs_date = balance_sheet_dates[yr]
-        # Adjust trading date to closest prior weekday if weekend
-        if bs_date.weekday() == 5:  # Saturday -> Friday
+        if bs_date.weekday() == 5:
             actual_date = bs_date - datetime.timedelta(days=1)
-        elif bs_date.weekday() == 6:  # Sunday -> Friday
+        elif bs_date.weekday() == 6:
             actual_date = bs_date - datetime.timedelta(days=2)
         else:
             actual_date = bs_date
@@ -305,7 +303,6 @@ def generate_mock_stock_prices(
             yoy_return = round((yoy_change / prev_close) * 100.0, 2)
 
         prev_close = close_price
-
         record = StockPriceRecord(
             fiscal_year=yr,
             balance_sheet_date=bs_date,
@@ -333,8 +330,7 @@ def retrieve_balance_sheet_stock_prices(
     Args:
         ticker (str): Company stock ticker symbol.
         balance_sheet_dates (Dict[int, datetime.date]): Year to date mapping.
-        use_mock_on_network_failure (bool): Fall back to mock prices
-            if offline.
+        use_mock_on_network_failure (bool): Fall back to mock if offline.
 
     Returns:
         List[StockPriceRecord]: Chronologically sorted list of records.
@@ -710,7 +706,7 @@ def run_stock_price_pipeline(
         data_dir=data_dir,
     )
 
-    # Step 2: Retrieve Closing Prices on (or prior trading day to) Dates
+    # Step 2: Retrieve Closing Prices on (or closest prior day to) Dates
     print("\n" + "=" * 80)
     print(f" RETRIEVING HISTORICAL STOCK PRICES FOR: {ticker_clean}")
     print("=" * 80)
@@ -760,7 +756,7 @@ def run_stock_price_pipeline(
 def parse_cli_args() -> argparse.Namespace:
     """Parse optional command-line arguments."""
     parser = argparse.ArgumentParser(
-        description="Retrieve historical prices for balance sheet dates.",
+        description="Retrieve historical stock prices for BS dates.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
