@@ -920,11 +920,20 @@
                 }
             });
 
-            // Re-render chart on tab switch
-            if (tabId === 'executive') renderDualAxisChart();
-            if (tabId === 'sentiment') renderSentimentChart();
-            if (tabId === 'stock') renderStockChart();
-            if (tabId === 'comparison') renderComparisonTab();
+            // Re-render tab content and charts on tab switch
+            if (tabId === 'executive') {
+                renderExecutiveTab();
+            } else if (tabId === 'ratios') {
+                renderRatiosTable();
+            } else if (tabId === 'statements') {
+                renderStatementsTab();
+            } else if (tabId === 'sentiment') {
+                renderSentimentTab();
+            } else if (tabId === 'stock') {
+                renderStockTab();
+            } else if (tabId === 'comparison') {
+                renderComparisonTab();
+            }
         }
 
         function switchStatement(stmtName) {
@@ -1062,6 +1071,8 @@
                 renderSentimentTab();
             } else if (currentTab === 'stock') {
                 renderStockTab();
+            } else if (currentTab === 'comparison') {
+                renderComparisonTab();
             }
         }
 
