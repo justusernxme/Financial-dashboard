@@ -386,6 +386,8 @@ CUSTOM_CSS: str = """
     div[data-testid="stHorizontalBlock"]:first-of-type
     div[data-testid="stTextInput"],
     div[data-testid="stHorizontalBlock"]:first-of-type
+    div[data-testid="stSelectbox"],
+    div[data-testid="stHorizontalBlock"]:first-of-type
     div[data-testid="stSegmentedControl"] {
         margin-top: 0 !important;
         margin-bottom: 0 !important;
@@ -1370,6 +1372,43 @@ def format_statement_cell(val: Any) -> str:
         return "—"
 
 
+def get_freeze_config(
+    first_col: Optional[str] = None,
+    freeze_cols: bool = True,
+    freeze_rows: bool = True,
+    default_height: int = 420,
+    df: Optional[pd.DataFrame] = None,
+) -> Tuple[Optional[int], Dict[str, Any]]:
+    """Generate Streamlit dataframe height and column pinning configuration.
+
+    Provides Excel Freeze Panes behavior by pinning the leading metric or
+    date column horizontally and fixing vertical container height so header
+    rows stay frozen during vertical scrolling.
+
+    Args:
+        first_col (Optional[str]): Explicit name of first column to freeze.
+        freeze_cols (bool): Whether to pin the first column horizontally.
+        freeze_rows (bool): Whether to freeze table headers vertically.
+        default_height (int): Internal container height in pixels for vertical
+            scrolling. Defaults to 420.
+        df (Optional[pd.DataFrame]): Optional dataframe to extract the first
+            column name from if first_col is None.
+
+    Returns:
+        Tuple[Optional[int], Dict[str, Any]]: (height, column_config mapping).
+    """
+    col_cfg: Dict[str, Any] = {}
+    resolved_col = first_col
+    if resolved_col is None and df is not None and not df.empty:
+        resolved_col = str(df.columns[0])
+
+    if freeze_cols and resolved_col:
+        col_cfg[resolved_col] = st.column_config.Column(pinned=True)
+
+    height = default_height if freeze_rows else None
+    return height, col_cfg
+
+
 def find_workbook_path(ticker: str) -> Optional[Path]:
     """Search for the company's Excel analysis workbook in common paths.
 
@@ -1831,12 +1870,16 @@ def render_dual_axis_chart(summary_df: pd.DataFrame, ticker: str) -> None:
 def render_executive_dashboard_tab(
     summary_df: pd.DataFrame,
     ticker: str,
+    freeze_cols: bool = True,
+    freeze_rows: bool = True,
 ) -> None:
     """Render the master Executive Summary dashboard view.
 
     Args:
         summary_df (pd.DataFrame): 10-year summary data.
         ticker (str): Stock ticker symbol.
+        freeze_cols (bool): Pin the first column horizontally.
+        freeze_rows (bool): Freeze header row vertically.
     """
     clean_df = clean_summary_dataframe(summary_df)
     col_chart, col_stat = st.columns([7, 3])
@@ -1906,22 +1949,34 @@ def render_executive_dashboard_tab(
     active_formats = {
         k: v for k, v in format_dict.items() if k in display_df.columns
     }
+    h_sum, cfg_sum = get_freeze_config(
+        first_col="Fiscal Year",
+        freeze_cols=freeze_cols,
+        freeze_rows=freeze_rows,
+        default_height=420,
+    )
     st.dataframe(
         display_df.style.format(active_formats, na_rep="—"),
         use_container_width=True,
         hide_index=True,
+        height=h_sum,
+        column_config=cfg_sum,
     )
 
 
 def render_financial_ratios_tab(
     ratios_df: pd.DataFrame,
     ticker: str,
+    freeze_cols: bool = True,
+    freeze_rows: bool = True,
 ) -> None:
     """Render the 10-year Financial Ratios view with category filtering.
 
     Args:
         ratios_df (pd.DataFrame): Financial ratios table.
         ticker (str): Stock ticker symbol.
+        freeze_cols (bool): Pin the first column horizontally.
+        freeze_rows (bool): Freeze header row vertically.
     """
     clean_ratios = clean_ratios_dataframe(ratios_df)
     col_filter, col_search = st.columns([4, 6])
@@ -1963,7 +2018,19 @@ def render_financial_ratios_tab(
         formatted_rows.append(rec)
 
     styled_df = pd.DataFrame(formatted_rows)
-    st.dataframe(styled_df, use_container_width=True, hide_index=True)
+    h_rat, cfg_rat = get_freeze_config(
+        first_col="Ratio / Metric",
+        freeze_cols=freeze_cols,
+        freeze_rows=freeze_rows,
+        default_height=420,
+    )
+    st.dataframe(
+        styled_df,
+        use_container_width=True,
+        hide_index=True,
+        height=h_rat,
+        column_config=cfg_rat,
+    )
 
     # Ratio Definitions & Equations Reference Guide Section
     st.markdown("---")
@@ -2118,12 +2185,16 @@ def render_financial_ratios_tab(
 def render_statements_tab(
     statements: Dict[str, pd.DataFrame],
     ticker: str,
+    freeze_cols: bool = True,
+    freeze_rows: bool = True,
 ) -> None:
     """Render audited Income Statement, Balance Sheet, and Cash Flows.
 
     Args:
         statements (Dict[str, pd.DataFrame]): Financial statement sheets.
         ticker (str): Stock ticker symbol.
+        freeze_cols (bool): Pin the first column horizontally.
+        freeze_rows (bool): Freeze header row vertically.
     """
     sub_tab1, sub_tab2, sub_tab3 = st.tabs(
         ["Income Statement", "Balance Sheet", "Cash Flows"]
@@ -2139,8 +2210,18 @@ def render_statements_tab(
                 formatted_inc[yr] = formatted_inc[yr].apply(
                     format_statement_cell
                 )
+            h_inc, cfg_inc = get_freeze_config(
+                df=formatted_inc,
+                freeze_cols=freeze_cols,
+                freeze_rows=freeze_rows,
+                default_height=420,
+            )
             st.dataframe(
-                formatted_inc, use_container_width=True, hide_index=True
+                formatted_inc,
+                use_container_width=True,
+                hide_index=True,
+                height=h_inc,
+                column_config=cfg_inc,
             )
 
     with sub_tab2:
@@ -2153,8 +2234,18 @@ def render_statements_tab(
                 formatted_bal[yr] = formatted_bal[yr].apply(
                     format_statement_cell
                 )
+            h_bal, cfg_bal = get_freeze_config(
+                df=formatted_bal,
+                freeze_cols=freeze_cols,
+                freeze_rows=freeze_rows,
+                default_height=420,
+            )
             st.dataframe(
-                formatted_bal, use_container_width=True, hide_index=True
+                formatted_bal,
+                use_container_width=True,
+                hide_index=True,
+                height=h_bal,
+                column_config=cfg_bal,
             )
 
     with sub_tab3:
@@ -2169,17 +2260,34 @@ def render_statements_tab(
                 formatted_csh[yr] = formatted_csh[yr].apply(
                     format_statement_cell
                 )
+            h_csh, cfg_csh = get_freeze_config(
+                df=formatted_csh,
+                freeze_cols=freeze_cols,
+                freeze_rows=freeze_rows,
+                default_height=420,
+            )
             st.dataframe(
-                formatted_csh, use_container_width=True, hide_index=True
+                formatted_csh,
+                use_container_width=True,
+                hide_index=True,
+                height=h_csh,
+                column_config=cfg_csh,
             )
 
 
-def render_sentiment_tab(sentiment_df: pd.DataFrame, ticker: str) -> None:
+def render_sentiment_tab(
+    sentiment_df: pd.DataFrame,
+    ticker: str,
+    freeze_cols: bool = True,
+    freeze_rows: bool = True,
+) -> None:
     """Render Loughran-McDonald MD&A sentiment metrics and breakdown.
 
     Args:
         sentiment_df (pd.DataFrame): 10-year MD&A sentiment table.
         ticker (str): Company stock ticker symbol.
+        freeze_cols (bool): Pin the first column horizontally.
+        freeze_rows (bool): Freeze header row vertically.
     """
     col_t, col_c = st.columns([6, 4])
     with col_t:
@@ -2204,10 +2312,18 @@ def render_sentiment_tab(sentiment_df: pd.DataFrame, ticker: str) -> None:
         active_formats = {
             k: v for k, v in format_sent.items() if k in sentiment_df.columns
         }
+        h_sent, cfg_sent = get_freeze_config(
+            first_col="Fiscal Year",
+            freeze_cols=freeze_cols,
+            freeze_rows=freeze_rows,
+            default_height=420,
+        )
         st.dataframe(
             sentiment_df.style.format(active_formats, na_rep="—"),
             use_container_width=True,
             hide_index=True,
+            height=h_sent,
+            column_config=cfg_sent,
         )
 
     with col_c:
@@ -2271,12 +2387,19 @@ def render_sentiment_tab(sentiment_df: pd.DataFrame, ticker: str) -> None:
     st.markdown(info_html, unsafe_allow_html=True)
 
 
-def render_stock_price_tab(stock_df: pd.DataFrame, ticker: str) -> None:
+def render_stock_price_tab(
+    stock_df: pd.DataFrame,
+    ticker: str,
+    freeze_cols: bool = True,
+    freeze_rows: bool = True,
+) -> None:
     """Render historical closing prices and returns on balance sheet dates.
 
     Args:
         stock_df (pd.DataFrame): 10-year stock price history table.
         ticker (str): Company stock ticker symbol.
+        freeze_cols (bool): Pin the first column horizontally.
+        freeze_rows (bool): Freeze header row vertically.
     """
     clean_p_df = clean_stock_dataframe(stock_df)
     col_tbl, col_chart = st.columns([6, 4])
@@ -2294,10 +2417,18 @@ def render_stock_price_tab(stock_df: pd.DataFrame, ticker: str) -> None:
         active_stock_formats = {
             k: v for k, v in format_stock.items() if k in clean_p_df.columns
         }
+        h_stk, cfg_stk = get_freeze_config(
+            first_col="Fiscal Year",
+            freeze_cols=freeze_cols,
+            freeze_rows=freeze_rows,
+            default_height=420,
+        )
         st.dataframe(
             clean_p_df.style.format(active_stock_formats, na_rep="—"),
             use_container_width=True,
             hide_index=True,
+            height=h_stk,
+            column_config=cfg_stk,
         )
 
     with col_chart:
@@ -2719,6 +2850,8 @@ def extract_comparison_metric_val(
 def render_company_comparison_tab(
     default_ticker_a: str,
     default_ticker_b: str = "MSFT",
+    freeze_cols: bool = True,
+    freeze_rows: bool = True,
 ) -> None:
     """Render head-to-head comparison between any two companies.
 
@@ -2728,6 +2861,8 @@ def render_company_comparison_tab(
     Args:
         default_ticker_a (str): Primary baseline company ticker.
         default_ticker_b (str): Target comparison company ticker.
+        freeze_cols (bool): Pin the first column horizontally.
+        freeze_rows (bool): Freeze header row vertically.
     """
     st.markdown("##### ⚖️ Head-to-Head Company Comparison")
     st.caption(
@@ -3676,7 +3811,19 @@ def render_company_comparison_tab(
 
     if comparison_table_rows:
         df_cmp_table = pd.DataFrame(comparison_table_rows)
-        st.dataframe(df_cmp_table, use_container_width=True, hide_index=True)
+        h_cmp, cfg_cmp = get_freeze_config(
+            first_col="Ratio / Metric",
+            freeze_cols=freeze_cols,
+            freeze_rows=freeze_rows,
+            default_height=420,
+        )
+        st.dataframe(
+            df_cmp_table,
+            use_container_width=True,
+            hide_index=True,
+            height=h_cmp,
+            column_config=cfg_cmp,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -3701,11 +3848,13 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    # Top Control Bar: Ticker Toggle, Custom Ticker, & Keyword Search
-    col_toggle, col_custom_ticker, col_keyword_search = st.columns(
-        [2.6, 3.4, 6.0],
-        vertical_alignment="center",
-    )
+    # Top Control Bar: Ticker Toggle, Custom Ticker, Freeze Panes, & Search
+    (
+        col_toggle,
+        col_custom_ticker,
+        col_freeze,
+        col_keyword_search,
+    ) = st.columns([2.3, 2.5, 3.0, 4.2], vertical_alignment="center")
 
     with col_toggle:
         preset_choice = st.segmented_control(
@@ -3727,6 +3876,24 @@ def main() -> None:
             key="custom_ticker_input",
         ).strip().upper()
 
+    with col_freeze:
+        freeze_choice = st.selectbox(
+            "Excel Freeze Panes",
+            options=[
+                "❄️ Freeze Both (Row & Col)",
+                "📌 Freeze First Column",
+                "⬆️ Freeze Top Row",
+                "🔓 Unfreeze All",
+            ],
+            index=0,
+            label_visibility="collapsed",
+            help=(
+                "Excel Freeze Panes: Lock the first column horizontally and "
+                "header row vertically while scrolling."
+            ),
+            key="freeze_panes_mode",
+        )
+
     with col_keyword_search:
         search_query = st.text_input(
             "Quick Metric & Keyword Search",
@@ -3736,6 +3903,23 @@ def main() -> None:
             ),
             label_visibility="collapsed",
             key="keyword_search_input",
+        )
+
+    freeze_cols = "Column" in freeze_choice or "Both" in freeze_choice
+    freeze_rows = "Row" in freeze_choice or "Both" in freeze_choice
+
+    with st.sidebar:
+        st.markdown("### ❄️ Excel Freeze Panes")
+        st.markdown(f"**Active Mode:** {freeze_choice}")
+        st.caption(
+            "Lock table headers vertically and first columns horizontally, "
+            "mirroring Microsoft Excel Freeze Panes."
+        )
+        st.markdown(
+            "- **Freeze Both:** Pins header row and first column.\n"
+            "- **Freeze First Column:** Pins line items horizontally.\n"
+            "- **Freeze Top Row:** Pins column headers vertically.\n"
+            "- **Unfreeze All:** Natural scrolling without pinning."
         )
 
     # Resolve active ticker: Custom input takes precedence if entered,
@@ -3775,7 +3959,19 @@ def main() -> None:
         )
         st.markdown(alert_html, unsafe_allow_html=True)
         if not matched_df.empty:
-            st.dataframe(matched_df, use_container_width=True, hide_index=True)
+            h_srch, cfg_srch = get_freeze_config(
+                first_col="Source Sheet",
+                freeze_cols=freeze_cols,
+                freeze_rows=freeze_rows,
+                default_height=420,
+            )
+            st.dataframe(
+                matched_df,
+                use_container_width=True,
+                hide_index=True,
+                height=h_srch,
+                column_config=cfg_srch,
+            )
         else:
             msg = (
                 f"No matching financial line items found for "
@@ -3811,25 +4007,37 @@ def main() -> None:
     )
 
     with tab_dash:
-        render_executive_dashboard_tab(summary_df, selected_ticker)
+        render_executive_dashboard_tab(
+            summary_df, selected_ticker, freeze_cols, freeze_rows
+        )
 
     with tab_ratios:
         ratios_df = data_bundle.get("Financial Ratios", pd.DataFrame())
-        render_financial_ratios_tab(ratios_df, selected_ticker)
+        render_financial_ratios_tab(
+            ratios_df, selected_ticker, freeze_cols, freeze_rows
+        )
 
     with tab_stmts:
-        render_statements_tab(data_bundle, selected_ticker)
+        render_statements_tab(
+            data_bundle, selected_ticker, freeze_cols, freeze_rows
+        )
 
     with tab_sent:
         sentiment_df = data_bundle.get("Sentiment Analysis", pd.DataFrame())
-        render_sentiment_tab(sentiment_df, selected_ticker)
+        render_sentiment_tab(
+            sentiment_df, selected_ticker, freeze_cols, freeze_rows
+        )
 
     with tab_price:
         stock_df = data_bundle.get("Stock Price", pd.DataFrame())
-        render_stock_price_tab(stock_df, selected_ticker)
+        render_stock_price_tab(
+            stock_df, selected_ticker, freeze_cols, freeze_rows
+        )
 
     with tab_compare:
-        render_company_comparison_tab(selected_ticker)
+        render_company_comparison_tab(
+            selected_ticker, freeze_cols=freeze_cols, freeze_rows=freeze_rows
+        )
 
 
 if __name__ == "__main__":

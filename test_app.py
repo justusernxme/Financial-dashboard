@@ -486,6 +486,47 @@ class TestStreamlitApp(unittest.TestCase):
         )
         self.assertGreater(nvda_assets, 50.0)
 
+    def test_get_freeze_config(self) -> None:
+        """Verify get_freeze_config returns expected height and pinning."""
+        from app import get_freeze_config
+
+        # 1. Freeze Both (Row & Column)
+        h, cfg = get_freeze_config(
+            "Ratio / Metric", freeze_cols=True, freeze_rows=True
+        )
+        self.assertEqual(h, 420)
+        self.assertIn("Ratio / Metric", cfg)
+        self.assertTrue(cfg["Ratio / Metric"]["pinned"])
+
+        # 2. Freeze First Column Only
+        h, cfg = get_freeze_config(
+            "Line Item", freeze_cols=True, freeze_rows=False
+        )
+        self.assertIsNone(h)
+        self.assertIn("Line Item", cfg)
+        self.assertTrue(cfg["Line Item"]["pinned"])
+
+        # 3. Freeze Top Row Only
+        h, cfg = get_freeze_config(
+            "Fiscal Year", freeze_cols=False, freeze_rows=True
+        )
+        self.assertEqual(h, 420)
+        self.assertEqual(len(cfg), 0)
+
+        # 4. Unfreeze All
+        h, cfg = get_freeze_config(
+            "Fiscal Year", freeze_cols=False, freeze_rows=False
+        )
+        self.assertIsNone(h)
+        self.assertEqual(len(cfg), 0)
+
+        # 5. Fallback to dataframe column 0
+        df = pd.DataFrame({"Dynamic Metric": [1, 2], "2024": [10, 20]})
+        h, cfg = get_freeze_config(df=df, freeze_cols=True, freeze_rows=True)
+        self.assertEqual(h, 420)
+        self.assertIn("Dynamic Metric", cfg)
+        self.assertTrue(cfg["Dynamic Metric"]["pinned"])
+
 
 if __name__ == "__main__":
     unittest.main()

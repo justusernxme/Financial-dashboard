@@ -98,6 +98,82 @@
             border: 1px solid #E2E8F0;
             overflow-x: auto;
             background: #FFFFFF;
+            position: relative;
+        }
+        .table-container.freeze-both,
+        .table-container.freeze-header {
+            max-height: 520px;
+            overflow-y: auto;
+        }
+        .table-container.freeze-column,
+        .table-container.freeze-none {
+            max-height: none;
+            overflow-y: visible;
+        }
+
+        /* Sticky Header Rows (top: 0) */
+        .table-container.freeze-both th,
+        .table-container.freeze-header th {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background-color: #1F4E79;
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Sticky First Column (left: 0) */
+        .table-container.freeze-both td:first-child,
+        .table-container.freeze-column td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            background-color: #FFFFFF;
+            box-shadow: 2px 0 4px -1px rgba(0, 0, 0, 0.08);
+        }
+        .table-container.freeze-both tr:nth-child(even) td:first-child,
+        .table-container.freeze-column tr:nth-child(even) td:first-child {
+            background-color: #F8FAFC;
+        }
+        .table-container.freeze-both tr:hover td:first-child,
+        .table-container.freeze-column tr:hover td:first-child {
+            background-color: #F1F5F9;
+        }
+        .table-container.freeze-both .header-row td:first-child,
+        .table-container.freeze-column .header-row td:first-child {
+            background-color: #D9E1F2 !important;
+        }
+        .table-container.freeze-both .total-row td:first-child,
+        .table-container.freeze-column .total-row td:first-child {
+            background-color: #F1F5F9 !important;
+        }
+
+        /* Top-Left Cell Intersection (top: 0 and left: 0) */
+        .table-container.freeze-both th:first-child {
+            position: sticky;
+            top: 0;
+            left: 0;
+            z-index: 30;
+            background-color: #1F4E79;
+            box-shadow: 2px 2px 4px -1px rgba(0, 0, 0, 0.15);
+        }
+        .table-container.freeze-column th:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 20;
+            background-color: #1F4E79;
+            box-shadow: 2px 0 4px -1px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Definitions Table Specific Overrides for Sticky Headers */
+        .table-container.freeze-both .definitions-table th,
+        .table-container.freeze-header .definitions-table th {
+            background-color: #F8FAFC !important;
+            color: #334155 !important;
+        }
+        .table-container.freeze-both .definitions-table th:first-child,
+        .table-container.freeze-column .definitions-table th:first-child {
+            background-color: #F8FAFC !important;
+            color: #334155 !important;
         }
         table {
             border-collapse: collapse;
@@ -156,7 +232,7 @@
 <body class="min-h-screen p-4 md:p-8 pt-8 md:pt-12">
     <div class="max-w-7xl mx-auto space-y-6 pt-2 md:pt-4">
 
-        <!-- Top Control Bar: Ticker Segmented Switcher & Real-time Search -->
+        <!-- Top Control Bar: Ticker Segmented Switcher, Freeze Panes & Real-time Search -->
         <div class="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
             <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1">Select Company:</span>
@@ -171,11 +247,22 @@
                     <button onclick="loadCustomTicker()" class="px-3 py-1.5 text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-all shadow-sm">Load</button>
                 </div>
             </div>
-            <div class="w-full md:w-96 relative">
-                <input type="text" id="global-search" oninput="handleSearch(this.value)"
-                    placeholder="🔍 Search keywords (e.g. 'Revenue', 'Goodwill', 'Debt')..."
-                    class="w-full pl-3.5 pr-8 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all">
-                <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-600 font-bold">✕</button>
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <div class="flex items-center gap-1.5">
+                    <label for="global-freeze-select" class="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Freeze:</label>
+                    <select id="global-freeze-select" onchange="applyGlobalFreezeMode(this.value)" class="text-xs font-semibold bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600">
+                        <option value="both">❄️ Freeze Both (Row &amp; Col)</option>
+                        <option value="column">📌 Freeze First Column</option>
+                        <option value="header">⬆️ Freeze Top Row</option>
+                        <option value="none">🔓 Unfreeze All</option>
+                    </select>
+                </div>
+                <div class="w-full md:w-80 relative">
+                    <input type="text" id="global-search" oninput="handleSearch(this.value)"
+                        placeholder="🔍 Search keywords (e.g. 'Revenue', 'Goodwill', 'Debt')..."
+                        class="w-full pl-3.5 pr-8 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all">
+                    <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-600 font-bold">✕</button>
+                </div>
             </div>
         </div>
 
@@ -578,6 +665,32 @@
         let currentStatement = 'Income Statement';
         let currentRatioCategory = 'All Categories';
         let searchQuery = '';
+        let currentFreezeMode = 'both';
+
+        function applyGlobalFreezeMode(mode) {
+            window.currentFreezeMode = mode;
+            currentFreezeMode = mode;
+            const containers = document.querySelectorAll('.table-container');
+            containers.forEach(tc => {
+                tc.classList.remove('freeze-both', 'freeze-column', 'freeze-header', 'freeze-none');
+                if (mode === 'both') {
+                    tc.classList.add('freeze-both');
+                } else if (mode === 'column') {
+                    tc.classList.add('freeze-column');
+                } else if (mode === 'header') {
+                    tc.classList.add('freeze-header');
+                } else {
+                    tc.classList.add('freeze-none');
+                }
+            });
+            const sel = document.getElementById('global-freeze-select');
+            if (sel && sel.value !== mode) {
+                sel.value = mode;
+            }
+            try {
+                localStorage.setItem('dashboard_freeze_mode', mode);
+            } catch (e) {}
+        }
 
         let dualAxisChartInstance = null;
         let sentimentChartInstance = null;
@@ -2185,6 +2298,11 @@
 
         // Initialize application on load
         window.addEventListener('DOMContentLoaded', () => {
+            let savedMode = 'both';
+            try {
+                savedMode = localStorage.getItem('dashboard_freeze_mode') || 'both';
+            } catch (e) {}
+            applyGlobalFreezeMode(savedMode);
             switchTicker('AAPL');
         });
     </script>
