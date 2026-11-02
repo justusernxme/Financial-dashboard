@@ -471,52 +471,28 @@
                             <p class="text-xs text-slate-500 mt-0.5" id="comp-chart-subheading">Normalized % return indexed to baseline over selected timeframe.</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2.5">
-                            <div class="flex items-center gap-1.5">
-                                <label for="comp-metric-select" class="text-xs font-bold text-slate-600">Metric:</label>
-                                <select id="comp-metric-select" onchange="renderComparisonTab()" class="text-xs border border-slate-300 rounded px-2.5 py-1.5 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600">
-                                    <optgroup label="Market & Total Return">
-                                        <option value="cum_return" selected>📈 Cumulative Stock Return (%)</option>
-                                        <option value="stock_price">💵 Closing Stock Price ($)</option>
-                                    </optgroup>
-                                    <optgroup label="Income & Scale">
-                                        <option value="revenue">💰 Annual Revenue ($B)</option>
-                                        <option value="gross_profit">💎 Gross Profit ($B)</option>
-                                        <option value="ebit">⚙️ Operating Income (EBIT) ($B)</option>
-                                        <option value="net_income">💹 Net Income ($B)</option>
-                                        <option value="rnd_expense">🔬 Research & Development ($B)</option>
-                                        <option value="eps">🪙 Diluted Earnings Per Share ($)</option>
-                                    </optgroup>
-                                    <optgroup label="Balance Sheet (Assets & Liabilities)">
-                                        <option value="total_assets">🏛️ Total Assets ($B)</option>
-                                        <option value="total_liabilities">📜 Total Liabilities ($B)</option>
-                                        <option value="total_equity">🏦 Total Stockholders' Equity ($B)</option>
-                                        <option value="cash_and_equiv">💵 Cash & Cash Equivalents ($B)</option>
-                                        <option value="current_assets">💼 Total Current Assets ($B)</option>
-                                        <option value="current_liabilities">🧾 Total Current Liabilities ($B)</option>
-                                    </optgroup>
-                                    <optgroup label="Margins & Profitability">
-                                        <option value="gross_margin">💎 Gross Profit Margin (%)</option>
-                                        <option value="op_margin">📊 Operating Profit Margin (%)</option>
-                                        <option value="net_margin">✨ Net Profit Margin (%)</option>
-                                        <option value="roe">🎯 Return on Equity (ROE %)</option>
-                                        <option value="roa">🎯 Return on Assets (ROA %)</option>
-                                    </optgroup>
-                                    <optgroup label="Liquidity & Solvency">
-                                        <option value="current_ratio">💧 Current Ratio (x)</option>
-                                        <option value="quick_ratio">⚡ Quick Ratio (Acid-Test)</option>
-                                        <option value="cash_ratio">🪙 Cash Ratio (x)</option>
-                                        <option value="debt_to_equity">⚖️ Debt-to-Equity Ratio</option>
-                                        <option value="debt_to_assets">🛡️ Debt-to-Assets Ratio</option>
-                                        <option value="financial_leverage">🏗️ Financial Leverage (Equity Multiplier)</option>
-                                        <option value="interest_coverage">🛡️ Interest Coverage Ratio (x)</option>
-                                    </optgroup>
-                                    <optgroup label="Cash Flow & Efficiency">
-                                        <option value="asset_turnover">🔄 Asset Turnover Ratio</option>
-                                        <option value="ocf">🌊 Operating Cash Flow ($B)</option>
-                                        <option value="free_cash_flow">💸 Free Cash Flow ($B)</option>
-                                        <option value="sentiment">🧠 MD&A Sentiment (P/N Ratio)</option>
-                                    </optgroup>
-                                </select>
+                            <div class="relative" id="comp-metric-dropdown-container">
+                                <div class="flex items-center gap-1.5">
+                                    <label class="text-xs font-bold text-slate-600">Metrics:</label>
+                                    <button id="comp-metric-dropdown-btn" type="button" onclick="toggleMetricDropdown(event)" class="text-xs border border-slate-300 rounded px-2.5 py-1.5 bg-white font-semibold text-slate-800 hover:bg-slate-50 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-blue-600">
+                                        <span id="comp-metric-summary-label">📊 1 Metric Selected</span>
+                                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </button>
+                                </div>
+                                <!-- Dropdown Modal / Popover -->
+                                <div id="comp-metric-dropdown-menu" class="hidden absolute left-0 md:right-0 md:left-auto mt-1.5 w-80 max-h-96 bg-white border border-slate-300 rounded-lg shadow-2xl p-3 z-50 overflow-y-auto">
+                                    <div class="flex justify-between items-center pb-2 border-b border-slate-200 mb-2.5">
+                                        <span class="text-xs font-bold text-slate-800">Select Metrics</span>
+                                        <div class="flex gap-1">
+                                            <button type="button" onclick="applyMetricPreset(['revenue','net_income','free_cash_flow'])" class="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 font-semibold rounded hover:bg-blue-100">Income</button>
+                                            <button type="button" onclick="applyMetricPreset(['total_assets','total_liabilities','total_equity'])" class="text-[10px] px-1.5 py-0.5 bg-indigo-50 text-indigo-700 font-semibold rounded hover:bg-indigo-100">Assets</button>
+                                            <button type="button" onclick="applyMetricPreset(['gross_margin','op_margin','net_margin'])" class="text-[10px] px-1.5 py-0.5 bg-emerald-50 text-emerald-700 font-semibold rounded hover:bg-emerald-100">Margins</button>
+                                            <button type="button" onclick="resetMetricSelection()" class="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-600 font-semibold rounded hover:bg-slate-200">Reset</button>
+                                        </div>
+                                    </div>
+                                    <div id="comp-metric-checkbox-groups" class="space-y-3 text-xs"></div>
+                                </div>
+                                <select id="comp-metric-select" class="hidden" multiple></select>
                             </div>
                             <div class="flex items-center gap-1.5">
                                 <label for="comp-start-year" class="text-xs font-bold text-slate-600">From:</label>
@@ -550,6 +526,7 @@
                             </div>
                         </div>
                     </div>
+                    <div id="comp-active-metric-pills" class="flex flex-wrap items-center gap-1.5 pt-0.5"></div>
                     <div class="h-80 w-full">
                         <canvas id="comparisonChart"></canvas>
                     </div>
@@ -1561,6 +1538,140 @@
             });
         }
 
+        const METRIC_GROUPS = [
+            {
+                name: "📈 Market & Total Return",
+                keys: ['cum_return', 'stock_price']
+            },
+            {
+                name: "💰 Income & Scale",
+                keys: ['revenue', 'gross_profit', 'ebit', 'net_income', 'rnd_expense', 'eps']
+            },
+            {
+                name: "🏛️ Balance Sheet (Assets & Liabilities)",
+                keys: ['total_assets', 'total_liabilities', 'total_equity', 'cash_and_equiv', 'current_assets', 'current_liabilities']
+            },
+            {
+                name: "📊 Margins & Profitability",
+                keys: ['gross_margin', 'op_margin', 'net_margin', 'roe', 'roa']
+            },
+            {
+                name: "⚖️ Liquidity & Solvency",
+                keys: ['current_ratio', 'quick_ratio', 'cash_ratio', 'debt_to_equity', 'debt_to_assets', 'financial_leverage', 'interest_coverage']
+            },
+            {
+                name: "🌊 Cash Flow & Efficiency",
+                keys: ['asset_turnover', 'ocf', 'free_cash_flow', 'sentiment']
+            }
+        ];
+
+        window.activeCompMetrics = ['cum_return'];
+        let compCheckboxesInitialized = false;
+
+        function initCompMetricCheckboxes(mConfigs) {
+            if (compCheckboxesInitialized) return;
+            const container = document.getElementById('comp-metric-checkbox-groups');
+            if (!container) return;
+            container.innerHTML = '';
+
+            METRIC_GROUPS.forEach(grp => {
+                const grpDiv = document.createElement('div');
+                grpDiv.className = 'border-b border-slate-100 pb-2 last:border-b-0';
+
+                const title = document.createElement('div');
+                title.className = 'font-bold text-[11px] text-slate-500 uppercase tracking-wider mb-1';
+                title.textContent = grp.name;
+                grpDiv.appendChild(title);
+
+                const itemsDiv = document.createElement('div');
+                itemsDiv.className = 'space-y-0.5';
+
+                grp.keys.forEach(k => {
+                    const cfg = mConfigs[k];
+                    if (!cfg) return;
+
+                    const lbl = document.createElement('label');
+                    lbl.className = 'flex items-center gap-2 px-1.5 py-1 rounded hover:bg-slate-50 cursor-pointer text-slate-700 text-xs select-none';
+
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.name = 'comp-metric-cb';
+                    cb.value = k;
+                    cb.checked = window.activeCompMetrics.includes(k);
+                    cb.className = 'rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5';
+                    cb.onchange = () => onCompMetricCheckboxChange(cb);
+
+                    const span = document.createElement('span');
+                    span.textContent = cfg.title;
+
+                    lbl.appendChild(cb);
+                    lbl.appendChild(span);
+                    itemsDiv.appendChild(lbl);
+                });
+
+                grpDiv.appendChild(itemsDiv);
+                container.appendChild(grpDiv);
+            });
+            compCheckboxesInitialized = true;
+        }
+
+        function toggleMetricDropdown(e) {
+            if (e) e.stopPropagation();
+            const menu = document.getElementById('comp-metric-dropdown-menu');
+            if (menu) menu.classList.toggle('hidden');
+        }
+
+        function onCompMetricCheckboxChange(cb) {
+            const val = cb.value;
+            if (cb.checked) {
+                if (!window.activeCompMetrics.includes(val)) {
+                    window.activeCompMetrics.push(val);
+                }
+            } else {
+                window.activeCompMetrics = window.activeCompMetrics.filter(m => m !== val);
+                if (window.activeCompMetrics.length === 0) {
+                    window.activeCompMetrics = ['cum_return'];
+                    syncCheckboxesWithActive();
+                }
+            }
+            renderComparisonTab();
+        }
+
+        function syncCheckboxesWithActive() {
+            document.querySelectorAll('input[name="comp-metric-cb"]').forEach(cb => {
+                cb.checked = window.activeCompMetrics.includes(cb.value);
+            });
+        }
+
+        function applyMetricPreset(keys) {
+            window.activeCompMetrics = [...keys];
+            syncCheckboxesWithActive();
+            renderComparisonTab();
+        }
+
+        function resetMetricSelection() {
+            window.activeCompMetrics = ['cum_return'];
+            syncCheckboxesWithActive();
+            renderComparisonTab();
+        }
+
+        function removeActiveMetric(k) {
+            window.activeCompMetrics = window.activeCompMetrics.filter(m => m !== k);
+            if (window.activeCompMetrics.length === 0) {
+                window.activeCompMetrics = ['cum_return'];
+            }
+            syncCheckboxesWithActive();
+            renderComparisonTab();
+        }
+
+        window.addEventListener('click', function(e) {
+            const container = document.getElementById('comp-metric-dropdown-container');
+            const menu = document.getElementById('comp-metric-dropdown-menu');
+            if (container && menu && !container.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
         function renderComparisonTab() {
             const selectA = document.getElementById('comp-select-a');
             const selectB = document.getElementById('comp-select-b');
@@ -1731,8 +1842,61 @@
                 return 0;
             }
 
-            const metricKey = document.getElementById('comp-metric-select') ? document.getElementById('comp-metric-select').value : 'cum_return';
-            const mCfg = METRIC_CONFIGS[metricKey] || METRIC_CONFIGS['cum_return'];
+            initCompMetricCheckboxes(METRIC_CONFIGS);
+
+            const activeKeys = (window.activeCompMetrics && window.activeCompMetrics.length > 0) ? window.activeCompMetrics : ['cum_return'];
+            const isSingle = activeKeys.length === 1;
+
+            // Update UI summary label & pills
+            const summaryLabel = document.getElementById('comp-metric-summary-label');
+            if (summaryLabel) {
+                if (isSingle) {
+                    const cfg = METRIC_CONFIGS[activeKeys[0]] || METRIC_CONFIGS['cum_return'];
+                    summaryLabel.textContent = `📊 ${cfg.title}`;
+                } else {
+                    summaryLabel.textContent = `📊 ${activeKeys.length} Metrics Selected`;
+                }
+            }
+
+            const pillsEl = document.getElementById('comp-active-metric-pills');
+            const METRIC_PALETTE = [
+                '#2563EB', '#10B981', '#F59E0B', '#8B5CF6',
+                '#EC4899', '#06B6D4', '#EF4444', '#6366F1',
+                '#14B8A6', '#F97316'
+            ];
+            if (pillsEl) {
+                pillsEl.innerHTML = '';
+                activeKeys.forEach((k, idx) => {
+                    const cfg = METRIC_CONFIGS[k] || METRIC_CONFIGS['cum_return'];
+                    const col = isSingle ? '#1F4E79' : METRIC_PALETTE[idx % METRIC_PALETTE.length];
+                    const pill = document.createElement('div');
+                    pill.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm transition-all';
+                    pill.style.backgroundColor = `${col}15`;
+                    pill.style.color = col;
+                    pill.style.borderColor = `${col}40`;
+                    pill.style.borderWidth = '1px';
+                    pill.innerHTML = `<span>${cfg.title}</span><button type="button" onclick="removeActiveMetric('${k}')" class="hover:opacity-80 font-bold ml-1 text-xs">&times;</button>`;
+                    pillsEl.appendChild(pill);
+                });
+
+                const addBtn = document.createElement('button');
+                addBtn.type = 'button';
+                addBtn.onclick = toggleMetricDropdown;
+                addBtn.className = 'text-xs text-blue-600 hover:text-blue-800 font-semibold px-2 py-0.5 border border-dashed border-blue-300 rounded-full hover:bg-blue-50';
+                addBtn.textContent = '+ Add Metric';
+                pillsEl.appendChild(addBtn);
+            }
+
+            const selHidden = document.getElementById('comp-metric-select');
+            if (selHidden) {
+                selHidden.innerHTML = '';
+                activeKeys.forEach(k => {
+                    const opt = document.createElement('option');
+                    opt.value = k;
+                    opt.selected = true;
+                    selHidden.appendChild(opt);
+                });
+            }
 
             const rawStart = document.getElementById('comp-start-year') ? parseInt(document.getElementById('comp-start-year').value) : 2016;
             const rawEnd = document.getElementById('comp-end-year') ? parseInt(document.getElementById('comp-end-year').value) : 2025;
@@ -1741,10 +1905,6 @@
 
             document.getElementById('comp-th-a').textContent = `${tickA} (FY${endYr.toString().slice(-2)})`;
             document.getElementById('comp-th-b').textContent = `${tickB} (FY${endYr.toString().slice(-2)})`;
-
-            // Update heading & description
-            document.getElementById('comp-chart-heading').textContent = `${mCfg.title} Benchmark (${startYr}–${endYr})`;
-            document.getElementById('comp-chart-subheading').textContent = `Historical trajectory comparison between ${tickA} and ${tickB} from FY${startYr} to FY${endYr}.`;
 
             // Timeframe metrics for KPI cards
             const pStartA = getMetricVal(dataA, 'stock_price', startYr, 0);
@@ -1770,11 +1930,11 @@
             const retTitle = (endYr > startYr) ? `${endYr - startYr}-Yr Stock Return` : `FY${endYr} Stock Return`;
 
             // Render KPI cards
-            const kpiGrid = document.getElementById('comp-kpi-grid');
-            kpiGrid.innerHTML = `
+            const compKpiGrid = document.getElementById('comp-kpi-grid');
+            compKpiGrid.innerHTML = `
                 <div class="kpi-card">
                     <div class="kpi-title">${retTitle} (${startYr}–${endYr})</div>
-                    <div class="flex justify-between text-xs mt-1 font-semibold text-slate-800">
+                    <div class="flex justify-between items-baseline mt-1 text-xs">
                         <span>${tickA}: ${retTimeframeA >= 0 ? '+' : ''}${retTimeframeA.toFixed(1)}%</span>
                         <span>${tickB}: ${retTimeframeB >= 0 ? '+' : ''}${retTimeframeB.toFixed(1)}%</span>
                     </div>
@@ -1783,8 +1943,8 @@
                     </div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-title">FY${endYr} Annual Revenue</div>
-                    <div class="flex justify-between text-xs mt-1 font-semibold text-slate-800">
+                    <div class="kpi-title">FY${endYr} Revenue</div>
+                    <div class="flex justify-between items-baseline mt-1 text-xs">
                         <span>${tickA}: $${revEndA.toFixed(1)}B</span>
                         <span>${tickB}: $${revEndB.toFixed(1)}B</span>
                     </div>
@@ -1794,7 +1954,7 @@
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-title">FY${endYr} Net Income</div>
-                    <div class="flex justify-between text-xs mt-1 font-semibold text-slate-800">
+                    <div class="flex justify-between items-baseline mt-1 text-xs">
                         <span>${tickA}: $${niEndA.toFixed(1)}B</span>
                         <span>${tickB}: $${niEndB.toFixed(1)}B</span>
                     </div>
@@ -1804,7 +1964,7 @@
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-title">FY${endYr} Return on Equity</div>
-                    <div class="flex justify-between text-xs mt-1 font-semibold text-slate-800">
+                    <div class="flex justify-between items-baseline mt-1 text-xs">
                         <span>${tickA}: ${roeEndA.toFixed(1)}%</span>
                         <span>${tickB}: ${roeEndB.toFixed(1)}%</span>
                     </div>
@@ -1814,6 +1974,16 @@
                 </div>
             `;
 
+            // Chart Headings
+            if (isSingle) {
+                const cfg = METRIC_CONFIGS[activeKeys[0]];
+                document.getElementById('comp-chart-heading').textContent = `${cfg.title} Benchmark (${startYr}–${endYr})`;
+                document.getElementById('comp-chart-subheading').textContent = `Historical trajectory comparison between ${tickA} and ${tickB} from FY${startYr} to FY${endYr}.`;
+            } else {
+                document.getElementById('comp-chart-heading').textContent = `Comparative Trajectory: ${activeKeys.length} Metrics Selected (${startYr}–${endYr})`;
+                document.getElementById('comp-chart-subheading').textContent = `Historical trajectory between ${tickA} (solid) and ${tickB} (dashed) from FY${startYr} to FY${endYr}.`;
+            }
+
             // Prepare Chart series
             const filteredYears = [];
             for (let y = startYr; y <= endYr; y++) {
@@ -1821,31 +1991,67 @@
             }
             const labels = filteredYears.map(y => y.toString());
 
-            const seriesA = filteredYears.map(yr => getMetricVal(dataA, metricKey, yr, pStartA));
-            const seriesB = filteredYears.map(yr => getMetricVal(dataB, metricKey, yr, pStartB));
+            function formatValByConfig(v, cfg, k) {
+                if (cfg.type === 'percent') return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+                if (cfg.type === 'percentFixed') return v.toFixed(2) + '%';
+                if (cfg.type === 'currency') return '$' + v.toFixed(2);
+                if (cfg.type === 'currencyB') return '$' + v.toFixed(2) + 'B';
+                if (cfg.type === 'multiplier') return v.toFixed(2) + 'x';
+                return v.toFixed(4);
+            }
 
-            // Axis formatting
+            const datasets = [];
+            activeKeys.forEach((k, idx) => {
+                const cfg = METRIC_CONFIGS[k] || METRIC_CONFIGS['cum_return'];
+                const sA = filteredYears.map(yr => getMetricVal(dataA, k, yr, pStartA));
+                const sB = filteredYears.map(yr => getMetricVal(dataB, k, yr, pStartB));
+                const colA = isSingle ? '#1F4E79' : METRIC_PALETTE[idx % METRIC_PALETTE.length];
+                const colB = isSingle ? '#C00000' : METRIC_PALETTE[idx % METRIC_PALETTE.length];
+
+                datasets.push({
+                    label: isSingle ? `${tickA} ${cfg.title}` : `${tickA} — ${cfg.title}`,
+                    data: sA,
+                    borderColor: colA,
+                    backgroundColor: isSingle ? 'rgba(31, 78, 121, 0.08)' : 'transparent',
+                    borderWidth: 2.5,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: colA,
+                    tension: 0.2,
+                    _metricKey: k,
+                    _company: tickA
+                });
+
+                datasets.push({
+                    label: isSingle ? `${tickB} ${cfg.title}` : `${tickB} — ${cfg.title}`,
+                    data: sB,
+                    borderColor: colB,
+                    backgroundColor: isSingle ? 'rgba(192, 0, 0, 0.08)' : 'transparent',
+                    borderWidth: 2.5,
+                    borderDash: [5, 4],
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: isSingle ? '#C00000' : '#FFFFFF',
+                    pointBorderColor: colB,
+                    pointBorderWidth: 2,
+                    tension: 0.2,
+                    _metricKey: k,
+                    _company: tickB
+                });
+            });
+
+            // Y-axis tick formatting
+            const distinctUnits = [...new Set(activeKeys.map(k => (METRIC_CONFIGS[k] || {}).unit))];
             let yTickCallback = v => v;
-            let tooltipCallback = ctx => `${ctx.dataset.label}: ${ctx.parsed.y}`;
-
-            if (mCfg.type === 'percent') {
-                yTickCallback = v => (v >= 0 ? '+' : '') + v.toFixed(0) + '%';
-                tooltipCallback = ctx => `${ctx.dataset.label}: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}%`;
-            } else if (mCfg.type === 'percentFixed') {
-                yTickCallback = v => v.toFixed(0) + '%';
-                tooltipCallback = ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%`;
-            } else if (mCfg.type === 'currency') {
-                yTickCallback = v => '$' + v.toFixed(0);
-                tooltipCallback = ctx => `${ctx.dataset.label}: $${ctx.parsed.y.toFixed(2)}`;
-            } else if (mCfg.type === 'currencyB') {
-                yTickCallback = v => '$' + v.toFixed(0) + 'B';
-                tooltipCallback = ctx => `${ctx.dataset.label}: $${ctx.parsed.y.toFixed(2)}B`;
-            } else if (mCfg.type === 'multiplier') {
-                yTickCallback = v => v.toFixed(1) + 'x';
-                tooltipCallback = ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}x`;
-            } else if (mCfg.type === 'ratio') {
-                yTickCallback = v => v.toFixed(2);
-                tooltipCallback = ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(4)}`;
+            if (distinctUnits.length === 1) {
+                const u = distinctUnits[0];
+                if (u === '%') yTickCallback = v => v.toFixed(0) + '%';
+                else if (u === '$B') yTickCallback = v => '$' + v.toFixed(0) + 'B';
+                else if (u === '$') yTickCallback = v => '$' + v.toFixed(0);
+                else if (u === 'x') yTickCallback = v => v.toFixed(1) + 'x';
+                else yTickCallback = v => v.toFixed(2);
+            } else {
+                yTickCallback = v => (Math.abs(v) >= 1000 ? (v / 1000).toFixed(0) + 'k' : v.toFixed(0));
             }
 
             const ctx = document.getElementById('comparisonChart').getContext('2d');
@@ -1857,28 +2063,7 @@
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [
-                        {
-                            label: `${tickA} ${mCfg.title}`,
-                            data: seriesA,
-                            borderColor: '#1F4E79',
-                            backgroundColor: 'rgba(31, 78, 121, 0.1)',
-                            borderWidth: 3,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#1F4E79',
-                            tension: 0.2
-                        },
-                        {
-                            label: `${tickB} ${mCfg.title}`,
-                            data: seriesB,
-                            borderColor: '#C00000',
-                            backgroundColor: 'rgba(192, 0, 0, 0.1)',
-                            borderWidth: 3,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#C00000',
-                            tension: 0.2
-                        }
-                    ]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
@@ -1894,7 +2079,12 @@
                         legend: { position: 'top' },
                         tooltip: {
                             callbacks: {
-                                label: tooltipCallback
+                                label: function(c) {
+                                    const ds = c.dataset;
+                                    const k = ds._metricKey || activeKeys[0];
+                                    const cfg = METRIC_CONFIGS[k] || METRIC_CONFIGS['cum_return'];
+                                    return `${ds.label}: ${formatValByConfig(c.parsed.y, cfg, k)}`;
+                                }
                             }
                         }
                     }
@@ -1902,26 +2092,40 @@
             });
 
             // Lead Badge Callout
-            const endValA = seriesA[seriesA.length - 1] || 0;
-            const endValB = seriesB[seriesB.length - 1] || 0;
-            const diffVal = Math.abs(endValA - endValB);
-            const isALead = mCfg.higherBetter ? (endValA >= endValB) : (endValA <= endValB);
-            const leadTick = isALead ? tickA : tickB;
-            const leadVal = isALead ? endValA : endValB;
-            const trailVal = isALead ? endValB : endValA;
-
-            function fmtBadge(v) {
-                if (mCfg.type === 'percent') return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
-                if (mCfg.type === 'percentFixed') return v.toFixed(2) + '%';
-                if (mCfg.type === 'currency') return '$' + v.toFixed(2);
-                if (mCfg.type === 'currencyB') return '$' + v.toFixed(2) + 'B';
-                if (mCfg.type === 'multiplier') return v.toFixed(2) + 'x';
-                return v.toFixed(4);
-            }
-
             const leadBadgeEl = document.getElementById('comp-chart-lead-badge');
             if (leadBadgeEl) {
-                leadBadgeEl.innerHTML = `📌 <b>FY${endYr} Benchmark Result</b>: <span class="font-bold text-blue-900">${leadTick}</span> leads in <b>${mCfg.title}</b> with ${fmtBadge(leadVal)} vs ${fmtBadge(trailVal)} (${fmtBadge(diffVal)} margin across FY${startYr}–FY${endYr}).`;
+                if (isSingle) {
+                    const cfg = METRIC_CONFIGS[activeKeys[0]];
+                    const endValA = datasets[0].data[datasets[0].data.length - 1] || 0;
+                    const endValB = datasets[1].data[datasets[1].data.length - 1] || 0;
+                    const diffVal = Math.abs(endValA - endValB);
+                    const isALead = cfg.higherBetter ? (endValA >= endValB) : (endValA <= endValB);
+                    const leadTick = isALead ? tickA : tickB;
+                    const leadVal = isALead ? endValA : endValB;
+                    const trailVal = isALead ? endValB : endValA;
+                    leadBadgeEl.innerHTML = `📌 <b>FY${endYr} Benchmark Result</b>: <span class="font-bold text-blue-900">${leadTick}</span> leads in <b>${cfg.title}</b> with ${formatValByConfig(leadVal, cfg, activeKeys[0])} vs ${formatValByConfig(trailVal, cfg, activeKeys[0])} (${formatValByConfig(diffVal, cfg, activeKeys[0])} margin across FY${startYr}–FY${endYr}).`;
+                } else {
+                    let html = `<div class="w-full"><div class="font-bold text-xs text-slate-800 mb-2">📌 FY${endYr} Benchmark Summary for Selected Metrics:</div><div class="grid grid-cols-2 md:grid-cols-4 gap-2">`;
+                    activeKeys.forEach((k, idx) => {
+                        const cfg = METRIC_CONFIGS[k] || METRIC_CONFIGS['cum_return'];
+                        const dsA = datasets[idx * 2];
+                        const dsB = datasets[idx * 2 + 1];
+                        const vA = dsA ? dsA.data[dsA.data.length - 1] || 0 : 0;
+                        const vB = dsB ? dsB.data[dsB.data.length - 1] || 0 : 0;
+                        const isALead = cfg.higherBetter ? (vA >= vB) : (vA <= vB);
+                        const leader = isALead ? tickA : tickB;
+                        const diff = Math.abs(vA - vB);
+                        html += `
+                            <div class="bg-white border border-slate-200 rounded p-2 text-xs shadow-sm">
+                                <div class="font-bold text-slate-700 truncate">${cfg.title}</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">${tickA}: ${formatValByConfig(vA, cfg, k)} &bull; ${tickB}: ${formatValByConfig(vB, cfg, k)}</div>
+                                <div class="text-[11px] font-bold text-emerald-700 mt-1">🏆 ${leader} leads by ${formatValByConfig(diff, cfg, k)}</div>
+                            </div>
+                        `;
+                    });
+                    html += `</div></div>`;
+                    leadBadgeEl.innerHTML = html;
+                }
             }
 
             // Render Comparison Table for FY2025 Ratios

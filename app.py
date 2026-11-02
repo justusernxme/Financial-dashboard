@@ -2866,14 +2866,20 @@ def render_company_comparison_tab(
     metric_labels = [
         COMPARISON_METRIC_CONFIG[k]["label"] for k in metric_keys
     ]
+    label_to_key = {
+        COMPARISON_METRIC_CONFIG[k]["label"]: k for k in metric_keys
+    }
     with c_met:
-        sel_label = st.selectbox(
+        sel_labels = st.multiselect(
             "Choose What to Show on Graph",
             options=metric_labels,
-            index=0,
-            key="cmp_chart_metric",
+            default=[metric_labels[0]],
+            key="cmp_chart_metrics",
+            help="Select one or multiple metrics to display on the graph.",
         )
-        chosen_key = metric_keys[metric_labels.index(sel_label)]
+        if not sel_labels:
+            sel_labels = [metric_labels[0]]
+        chosen_keys = [label_to_key[lbl] for lbl in sel_labels]
 
     all_years = list(range(2016, 2026))
     with c_from:
@@ -2894,7 +2900,6 @@ def render_company_comparison_tab(
     start_yr = min(start_year_input, end_year_input)
     end_yr = max(start_year_input, end_year_input)
     timeframe_years = [y for y in all_years if start_yr <= y <= end_yr]
-    cfg = COMPARISON_METRIC_CONFIG[chosen_key]
 
     # Timeframe Showdown Calculations
     p_start_a = extract_comparison_metric_val(
@@ -3010,121 +3015,317 @@ def render_company_comparison_tab(
 
     st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
 
-    # Primary Benchmark Trajectory Chart (Driven by chosen metric & timeframe)
-    st.markdown(
-        f"##### 📈 Comparative Trajectory: {cfg['title']} ({start_yr}–{end_yr})"
-    )
+    def format_metric_value(v: float, u: str, k: str) -> str:
+        if u == "$":
+            return f"${v:,.2f}"
+        if u == "$B":
+            return f"${v:,.2f}B"
+        if u == "%":
+            return f"{v:+.2f}%" if k == "cum_return" else f"{v:.2f}%"
+        if u == "x":
+            return f"{v:.2f}x"
+        return f"{v:.4f}"
 
-    chart_rows = []
-    val_end_a = 0.0
-    val_end_b = 0.0
-
-    for yr in timeframe_years:
-        yr_str = str(yr)
-        if chosen_key == "cum_return":
-            pa = extract_comparison_metric_val(bundle_a, "stock_price", yr)
-            pb = extract_comparison_metric_val(bundle_b, "stock_price", yr)
-            cuma = (
-                ((pa - p_start_a) / p_start_a * 100.0)
-                if p_start_a > 0.0
-                else 0.0
-            )
-            cumb = (
-                ((pb - p_start_b) / p_start_b * 100.0)
-                if p_start_b > 0.0
-                else 0.0
-            )
-            va = round(cuma, 2)
-            vb = round(cumb, 2)
-        else:
-            va = round(
-                extract_comparison_metric_val(bundle_a, chosen_key, yr), 2
-            )
-            vb = round(
-                extract_comparison_metric_val(bundle_b, chosen_key, yr), 2
-            )
-
-        if yr == end_yr:
-            val_end_a = va
-            val_end_b = vb
-
-        chart_rows.append(
-            {
-                "Fiscal Year": yr_str,
-                "Company": f"{ticker_a} ({meta_a.get('name', ticker_a)})",
-                "Value": va,
-                "Ticker": ticker_a,
-            }
-        )
-        chart_rows.append(
-            {
-                "Fiscal Year": yr_str,
-                "Company": f"{ticker_b} ({meta_b.get('name', ticker_b)})",
-                "Value": vb,
-                "Ticker": ticker_b,
-            }
+    if len(chosen_keys) == 1:
+        chosen_key = chosen_keys[0]
+        cfg = COMPARISON_METRIC_CONFIG[chosen_key]
+        st.markdown(
+            f"##### 📈 Comparative Trajectory: {cfg['title']} "
+            f"({start_yr}–{end_yr})"
         )
 
-    if chart_rows:
-        df_chart = pd.DataFrame(chart_rows)
-        unit = cfg["unit"]
-        fmt = cfg["format"]
-        chart_comp = (
-            alt.Chart(df_chart)
-            .mark_line(point=True, strokeWidth=3)
-            .encode(
-                x=alt.X("Fiscal Year:O", title="Fiscal Year"),
-                y=alt.Y("Value:Q", title=f"{cfg['title']} ({unit})"),
-                color=alt.Color(
-                    "Company:N",
-                    scale=alt.Scale(range=[COLOR_NAVY, COLOR_CRIMSON]),
-                ),
-                tooltip=[
-                    "Fiscal Year",
-                    "Company",
-                    alt.Tooltip("Value:Q", format=fmt, title=cfg["title"]),
-                ],
-            )
-            .properties(height=350)
-        )
-        st.altair_chart(chart_comp, use_container_width=True)
+        chart_rows = []
+        val_end_a = 0.0
+        val_end_b = 0.0
 
-        diff = abs(val_end_a - val_end_b)
-        higher_better = cfg.get("higher_better", True)
-        is_a_lead = (
-            (val_end_a >= val_end_b)
-            if higher_better
-            else (val_end_a <= val_end_b)
-        )
-        lead_tick = ticker_a if is_a_lead else ticker_b
-        lead_name = (
-            meta_a.get("name", ticker_a)
-            if is_a_lead
-            else meta_b.get("name", ticker_b)
-        )
-
-        def fmt_val(v: float) -> str:
-            if unit == "$":
-                return f"${v:,.2f}"
-            if unit == "$B":
-                return f"${v:,.2f}B"
-            if unit == "%":
-                return (
-                    f"{v:+.2f}%"
-                    if chosen_key == "cum_return"
-                    else f"{v:.2f}%"
+        for yr in timeframe_years:
+            yr_str = str(yr)
+            if chosen_key == "cum_return":
+                pa = extract_comparison_metric_val(
+                    bundle_a, "stock_price", yr
                 )
-            if unit == "x":
-                return f"{v:.2f}x"
-            return f"{v:.4f}"
+                pb = extract_comparison_metric_val(
+                    bundle_b, "stock_price", yr
+                )
+                cuma = (
+                    ((pa - p_start_a) / p_start_a * 100.0)
+                    if p_start_a > 0.0
+                    else 0.0
+                )
+                cumb = (
+                    ((pb - p_start_b) / p_start_b * 100.0)
+                    if p_start_b > 0.0
+                    else 0.0
+                )
+                va = round(cuma, 2)
+                vb = round(cumb, 2)
+            else:
+                va = round(
+                    extract_comparison_metric_val(bundle_a, chosen_key, yr), 2
+                )
+                vb = round(
+                    extract_comparison_metric_val(bundle_b, chosen_key, yr), 2
+                )
 
-        st.caption(
-            f"📌 **FY{end_yr} Benchmark Result**: **{lead_tick}** "
-            f"({lead_name}) leads in **{cfg['title']}** with "
-            f"{fmt_val(val_end_a if is_a_lead else val_end_b)} vs "
-            f"{fmt_val(val_end_b if is_a_lead else val_end_a)} "
-            f"({fmt_val(diff)} variance across FY{start_yr}–FY{end_yr})."
+            if yr == end_yr:
+                val_end_a = va
+                val_end_b = vb
+
+            chart_rows.append(
+                {
+                    "Fiscal Year": yr_str,
+                    "Company": f"{ticker_a} ({meta_a.get('name', ticker_a)})",
+                    "Value": va,
+                    "Ticker": ticker_a,
+                }
+            )
+            chart_rows.append(
+                {
+                    "Fiscal Year": yr_str,
+                    "Company": f"{ticker_b} ({meta_b.get('name', ticker_b)})",
+                    "Value": vb,
+                    "Ticker": ticker_b,
+                }
+            )
+
+        if chart_rows:
+            df_chart = pd.DataFrame(chart_rows)
+            unit = cfg["unit"]
+            fmt = cfg["format"]
+            chart_comp = (
+                alt.Chart(df_chart)
+                .mark_line(point=True, strokeWidth=3)
+                .encode(
+                    x=alt.X("Fiscal Year:O", title="Fiscal Year"),
+                    y=alt.Y("Value:Q", title=f"{cfg['title']} ({unit})"),
+                    color=alt.Color(
+                        "Company:N",
+                        scale=alt.Scale(range=[COLOR_NAVY, COLOR_CRIMSON]),
+                    ),
+                    tooltip=[
+                        "Fiscal Year",
+                        "Company",
+                        alt.Tooltip("Value:Q", format=fmt, title=cfg["title"]),
+                    ],
+                )
+                .properties(height=350)
+            )
+            st.altair_chart(chart_comp, use_container_width=True)
+
+            diff = abs(val_end_a - val_end_b)
+            higher_better = cfg.get("higher_better", True)
+            is_a_lead = (
+                (val_end_a >= val_end_b)
+                if higher_better
+                else (val_end_a <= val_end_b)
+            )
+            lead_tick = ticker_a if is_a_lead else ticker_b
+            lead_name = (
+                meta_a.get("name", ticker_a)
+                if is_a_lead
+                else meta_b.get("name", ticker_b)
+            )
+            lead_v = val_end_a if is_a_lead else val_end_b
+            trail_v = val_end_b if is_a_lead else val_end_a
+
+            st.caption(
+                f"📌 **FY{end_yr} Benchmark Result**: **{lead_tick}** "
+                f"({lead_name}) leads in **{cfg['title']}** with "
+                f"{format_metric_value(lead_v, unit, chosen_key)} vs "
+                f"{format_metric_value(trail_v, unit, chosen_key)} "
+                f"({format_metric_value(diff, unit, chosen_key)} "
+                f"variance across FY{start_yr}–FY{end_yr})."
+            )
+    else:
+        # Multiple Metrics Selected
+        st.markdown(
+            f"##### 📈 Comparative Multi-Metric Trajectory: "
+            f"{len(chosen_keys)} Metrics Selected ({start_yr}–{end_yr})"
         )
+        chart_rows = []
+        metrics_summary = []
+        distinct_units = list({
+            COMPARISON_METRIC_CONFIG[k]["unit"] for k in chosen_keys
+        })
+        common_unit = distinct_units[0] if len(distinct_units) == 1 else ""
+
+        for k in chosen_keys:
+            m_cfg = COMPARISON_METRIC_CONFIG[k]
+            m_title = m_cfg["title"]
+            m_unit = m_cfg["unit"]
+            end_va = 0.0
+            end_vb = 0.0
+
+            for yr in timeframe_years:
+                yr_str = str(yr)
+                if k == "cum_return":
+                    pa = extract_comparison_metric_val(
+                        bundle_a, "stock_price", yr
+                    )
+                    pb = extract_comparison_metric_val(
+                        bundle_b, "stock_price", yr
+                    )
+                    cuma = (
+                        ((pa - p_start_a) / p_start_a * 100.0)
+                        if p_start_a > 0.0
+                        else 0.0
+                    )
+                    cumb = (
+                        ((pb - p_start_b) / p_start_b * 100.0)
+                        if p_start_b > 0.0
+                        else 0.0
+                    )
+                    va = round(cuma, 2)
+                    vb = round(cumb, 2)
+                else:
+                    va = round(
+                        extract_comparison_metric_val(bundle_a, k, yr), 2
+                    )
+                    vb = round(
+                        extract_comparison_metric_val(bundle_b, k, yr), 2
+                    )
+
+                if yr == end_yr:
+                    end_va = va
+                    end_vb = vb
+
+                chart_rows.append(
+                    {
+                        "Fiscal Year": yr_str,
+                        "Company": ticker_a,
+                        "Metric": m_title,
+                        "Series": f"{ticker_a} — {m_title}",
+                        "Value": va,
+                        "Formatted": format_metric_value(va, m_unit, k),
+                    }
+                )
+                chart_rows.append(
+                    {
+                        "Fiscal Year": yr_str,
+                        "Company": ticker_b,
+                        "Metric": m_title,
+                        "Series": f"{ticker_b} — {m_title}",
+                        "Value": vb,
+                        "Formatted": format_metric_value(vb, m_unit, k),
+                    }
+                )
+
+            diff_k = abs(end_va - end_vb)
+            hb = m_cfg.get("higher_better", True)
+            lead_is_a = (end_va >= end_vb) if hb else (end_va <= end_vb)
+            lead_t = ticker_a if lead_is_a else ticker_b
+            metrics_summary.append(
+                {
+                    "metric": m_title,
+                    "unit": m_unit,
+                    "key": k,
+                    "va": end_va,
+                    "vb": end_vb,
+                    "lead": lead_t,
+                    "diff": diff_k,
+                }
+            )
+
+        if chart_rows:
+            df_multi = pd.DataFrame(chart_rows)
+            y_axis_title = (
+                f"Financial Scale ({common_unit})"
+                if common_unit
+                else "Value (Hover for Specific Units)"
+            )
+
+            if len(distinct_units) == 1:
+                chart_multi = (
+                    alt.Chart(df_multi)
+                    .mark_line(point=True, strokeWidth=2.5)
+                    .encode(
+                        x=alt.X("Fiscal Year:O", title="Fiscal Year"),
+                        y=alt.Y("Value:Q", title=y_axis_title),
+                        color=alt.Color(
+                            "Metric:N",
+                            scale=alt.Scale(scheme="category10"),
+                            title="Metric",
+                        ),
+                        strokeDash=alt.StrokeDash(
+                            "Company:N",
+                            scale=alt.Scale(
+                                domain=[ticker_a, ticker_b],
+                                range=[[1, 0], [5, 4]],
+                            ),
+                            title="Company",
+                        ),
+                        tooltip=[
+                            "Fiscal Year:O",
+                            "Company:N",
+                            "Metric:N",
+                            alt.Tooltip("Formatted:N", title="Value"),
+                        ],
+                    )
+                    .properties(height=380)
+                )
+            else:
+                chart_multi = (
+                    alt.Chart(df_multi)
+                    .mark_line(point=True, strokeWidth=2.5)
+                    .encode(
+                        x=alt.X("Fiscal Year:O", title="Fiscal Year"),
+                        y=alt.Y("Value:Q", title=y_axis_title),
+                        color=alt.Color(
+                            "Series:N",
+                            scale=alt.Scale(scheme="tableau10"),
+                            title="Company & Metric",
+                        ),
+                        strokeDash=alt.StrokeDash(
+                            "Company:N",
+                            scale=alt.Scale(
+                                domain=[ticker_a, ticker_b],
+                                range=[[1, 0], [5, 4]],
+                            ),
+                            title="Company",
+                        ),
+                        tooltip=[
+                            "Fiscal Year:O",
+                            "Company:N",
+                            "Metric:N",
+                            alt.Tooltip("Formatted:N", title="Value"),
+                        ],
+                    )
+                    .properties(height=380)
+                )
+
+            st.altair_chart(chart_multi, use_container_width=True)
+
+            # Benchmark Summary Cards for all selected metrics
+            st.markdown(
+                f"**📌 FY{end_yr} Head-to-Head Benchmark for "
+                f"Selected Metrics:**"
+            )
+            n_cols = min(len(metrics_summary), 4)
+            cols = st.columns(n_cols)
+            for i, ms in enumerate(metrics_summary):
+                with cols[i % n_cols]:
+                    v_str_a = format_metric_value(
+                        ms["va"], ms["unit"], ms["key"]
+                    )
+                    v_str_b = format_metric_value(
+                        ms["vb"], ms["unit"], ms["key"]
+                    )
+                    d_str = format_metric_value(
+                        ms["diff"], ms["unit"], ms["key"]
+                    )
+                    card_html = (
+                        '<div class="kpi-card" style="padding: 0.6rem '
+                        '0.8rem; margin-bottom: 0.5rem;">'
+                        f'<div class="kpi-title" style="font-size: 0.72rem;">'
+                        f'{ms["metric"]}</div>'
+                        f'<div style="font-size: 0.82rem; margin: 2px 0;">'
+                        f'<b>{ticker_a}</b>: {v_str_a} &bull; '
+                        f'<b>{ticker_b}</b>: {v_str_b}</div>'
+                        f'<div class="kpi-delta delta-pos" '
+                        f'style="font-size: 0.75rem;">'
+                        f'🏆 {ms["lead"]} leads by {d_str}</div></div>'
+                    )
+                    st.markdown(card_html, unsafe_allow_html=True)
 
     # Preset multi-metric deep dive views
     with st.expander(
