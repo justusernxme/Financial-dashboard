@@ -386,8 +386,6 @@ CUSTOM_CSS: str = """
     div[data-testid="stHorizontalBlock"]:first-of-type
     div[data-testid="stTextInput"],
     div[data-testid="stHorizontalBlock"]:first-of-type
-    div[data-testid="stSelectbox"],
-    div[data-testid="stHorizontalBlock"]:first-of-type
     div[data-testid="stSegmentedControl"] {
         margin-top: 0 !important;
         margin-bottom: 0 !important;
@@ -3848,13 +3846,11 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    # Top Control Bar: Ticker Toggle, Custom Ticker, Freeze Panes, & Search
-    (
-        col_toggle,
-        col_custom_ticker,
-        col_freeze,
-        col_keyword_search,
-    ) = st.columns([2.3, 2.5, 3.0, 4.2], vertical_alignment="center")
+    # Top Control Bar: Ticker Toggle, Custom Ticker, & Keyword Search
+    col_toggle, col_custom_ticker, col_keyword_search = st.columns(
+        [2.6, 3.4, 6.0],
+        vertical_alignment="center",
+    )
 
     with col_toggle:
         preset_choice = st.segmented_control(
@@ -3876,24 +3872,6 @@ def main() -> None:
             key="custom_ticker_input",
         ).strip().upper()
 
-    with col_freeze:
-        freeze_choice = st.selectbox(
-            "Excel Freeze Panes",
-            options=[
-                "❄️ Freeze Both (Row & Col)",
-                "📌 Freeze First Column",
-                "⬆️ Freeze Top Row",
-                "🔓 Unfreeze All",
-            ],
-            index=0,
-            label_visibility="collapsed",
-            help=(
-                "Excel Freeze Panes: Lock the first column horizontally and "
-                "header row vertically while scrolling."
-            ),
-            key="freeze_panes_mode",
-        )
-
     with col_keyword_search:
         search_query = st.text_input(
             "Quick Metric & Keyword Search",
@@ -3903,23 +3881,6 @@ def main() -> None:
             ),
             label_visibility="collapsed",
             key="keyword_search_input",
-        )
-
-    freeze_cols = "Column" in freeze_choice or "Both" in freeze_choice
-    freeze_rows = "Row" in freeze_choice or "Both" in freeze_choice
-
-    with st.sidebar:
-        st.markdown("### ❄️ Excel Freeze Panes")
-        st.markdown(f"**Active Mode:** {freeze_choice}")
-        st.caption(
-            "Lock table headers vertically and first columns horizontally, "
-            "mirroring Microsoft Excel Freeze Panes."
-        )
-        st.markdown(
-            "- **Freeze Both:** Pins header row and first column.\n"
-            "- **Freeze First Column:** Pins line items horizontally.\n"
-            "- **Freeze Top Row:** Pins column headers vertically.\n"
-            "- **Unfreeze All:** Natural scrolling without pinning."
         )
 
     # Resolve active ticker: Custom input takes precedence if entered,
@@ -3959,10 +3920,15 @@ def main() -> None:
         )
         st.markdown(alert_html, unsafe_allow_html=True)
         if not matched_df.empty:
+            cur_freeze = st.session_state.get(
+                "freeze_panes_mode", "❄️ Freeze Both (Row & Col)"
+            )
+            sf_cols = "Column" in cur_freeze or "Both" in cur_freeze
+            sf_rows = "Row" in cur_freeze or "Both" in cur_freeze
             h_srch, cfg_srch = get_freeze_config(
                 first_col="Source Sheet",
-                freeze_cols=freeze_cols,
-                freeze_rows=freeze_rows,
+                freeze_cols=sf_cols,
+                freeze_rows=sf_rows,
                 default_height=420,
             )
             st.dataframe(
@@ -3986,6 +3952,45 @@ def main() -> None:
     render_kpi_cards(summary_df)
 
     st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+
+    # Freeze Panes Control (positioned right above charts & tabs on the right)
+    col_ctrl_spacer, col_ctrl_freeze = st.columns(
+        [8.2, 3.8], vertical_alignment="center"
+    )
+    with col_ctrl_freeze:
+        freeze_choice = st.selectbox(
+            "Excel Freeze Panes",
+            options=[
+                "❄️ Freeze Both (Row & Col)",
+                "📌 Freeze First Column",
+                "⬆️ Freeze Top Row",
+                "🔓 Unfreeze All",
+            ],
+            index=0,
+            label_visibility="collapsed",
+            help=(
+                "Excel Freeze Panes: Lock the first column horizontally and "
+                "header row vertically while scrolling."
+            ),
+            key="freeze_panes_mode",
+        )
+
+    freeze_cols = "Column" in freeze_choice or "Both" in freeze_choice
+    freeze_rows = "Row" in freeze_choice or "Both" in freeze_choice
+
+    with st.sidebar:
+        st.markdown("### ❄️ Excel Freeze Panes")
+        st.markdown(f"**Active Mode:** {freeze_choice}")
+        st.caption(
+            "Lock table headers vertically and first columns horizontally, "
+            "mirroring Microsoft Excel Freeze Panes."
+        )
+        st.markdown(
+            "- **Freeze Both:** Pins header row and first column.\n"
+            "- **Freeze First Column:** Pins line items horizontally.\n"
+            "- **Freeze Top Row:** Pins column headers vertically.\n"
+            "- **Unfreeze All:** Natural scrolling without pinning."
+        )
 
     # Primary Multi-Tab Explorer View
     (
